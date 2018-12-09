@@ -1,0 +1,9 @@
+/**
+ * 获取当前时间戳
+ *
+ * @export
+ * @returns {Number} 返回当前的时间戳
+ */
+export default function getTime () {
+    return (window && window.performance && window.performance.timing.navigationStart) || Date.now();
+}

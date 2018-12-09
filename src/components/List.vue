@@ -13,12 +13,18 @@
 </template>
 
 <script>
+import BetterScroll from '../commons/betterScroll';
+
 export default {
     name: 'bs-list',
     data () {
         return {
             itemData: [1, 2, 3, 4, 5, 6]
         };
+    },
+    mounted() {
+        const _that = this;
+        let bScroll = new BetterScroll(_that.$el);
     }
 };
 </script>

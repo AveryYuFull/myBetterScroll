@@ -1,6 +1,11 @@
+import getEventType from './utils/getEventType';
+import initEventListener from './utils/initEventListener';
+import getTime from './utils/getTime';
+
 export const DEFAULT_CONFIG = {
   startX: 0, // 横轴方向初始化位置
   startY: 0, // 纵轴方向初始化位置
+  enabled: true, // 是否开启better-scroll滚动
   scrollX: false, // 当设置为 true 的时候，可以开启横向滚动
   scrollY: true, // 当设置为 true 的时候，可以开启纵向滚动
   freeScroll: false, // 有些场景我们需要支持横向和纵向同时滚动，而不仅限制在某个方向，这个时候我们只要设置 freeScroll 为 true 即可
@@ -18,5 +23,16 @@ export const DEFAULT_CONFIG = {
 
   useWrapper: false, // 是否使用包裹元素来监听事件
   disableMouse: false, // 是否监听鼠标相关事件
-  disableTouch: false // 是否监听 touch 相关事件
+  disableTouch: false, // 是否监听 touch 相关事件
+
+  initEventListener: initEventListener, // 注册/解除事件监听器
+  getEventType: getEventType, // 获取事件类型
+  getTime: getTime // 获取当前时间戳
+}
+
+export const TOUCH_EVENT = 'touch_event';
+export const MOUSE_EVENT = 'mouse_event';
+export const DIRECTION = { // 滚动方向
+  H: 'horizontal',
+  V: 'vertical'
 }
