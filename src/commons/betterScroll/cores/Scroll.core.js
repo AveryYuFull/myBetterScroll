@@ -1,5 +1,8 @@
 import ScrollBase from './Scroll.base';
-import { DEFAULT_CONFIG, TOUCH_EVENT, MOUSE_EVENT, DIRECTION } from '../constants';
+import { DEFAULT_CONFIG, EVENT_TYPE, MOUSE_EVENT, DIRECTION, eventType, style,
+    probeType } from '../constants';
+import { requestAnimationFrame, cancelAnimationFrame } from '../utils/raf';
+import getStyle from '../utils/getStyle';
 
 /**
  * 核心的滚动条事件逻辑的处理模块
@@ -16,54 +19,6 @@ export default class ScrollCore extends ScrollBase {
      */
     defaultOptions = DEFAULT_CONFIG;
 
-    /**
-     * 初始化事件类型
-     *
-     * @memberof ScrollCore
-     */
-    initialEvt = null;
-
-    /**
-     * 记录滚动的位置
-     *
-     * @memberof ScrollCore
-     */
-    pos = null;
-
-    /**
-     * 滚动条的水平位置
-     *
-     * @memberof ScrollCore
-     */
-    x = 0;
-
-    /**
-     * 滚动条的垂直位置
-     *
-     * @memberof ScrollCore
-     */
-    y = 0;
-
-    /**
-     * 记录水平滚动的距离
-     *
-     * @memberof ScrollCore
-     */
-    distX = 0;
-    /**
-     * 记录垂直滚动的距离
-     *
-     * @memberof ScrollCore
-     */
-    distY = 0;
-
-    /**
-     * 滚动方向
-     *
-     * @memberof ScrollCore
-     */
-    lockDirection = DIRECTION.V;
-
     constructor (el, options) {
         super(el, options);
 
@@ -73,37 +28,52 @@ export default class ScrollCore extends ScrollBase {
 
     /**
      * mousedown/touchstart 回调方法
+     * 记录一下当前鼠标或触摸位置
      *
      * @param {Event} evt 事件对象
      * @memberof ScrollCore
      */
     _start (evt) {
-        console.log('start', evt, evt instanceof TouchEvent);
         const _that = this;
-        const _opts = _that.defaultOptions;
-
-        let _eventType = ((evt instanceof TouchEvent) && TOUCH_EVENT) || MOUSE_EVENT;
-        if (_eventType === MOUSE_EVENT) {
+        const _evtType = eventType[evt.type];
+        if (_evtType === MOUSE_EVENT) {
             if (evt.button !== 0) {
                 return;
             }
         }
 
-        if (!_opts.enabled || (_that.initialEvt && _that.initialEvt !== _eventType)) {
+        const _opts = _that.defaultOptions;
+        if (!_opts.enabled || (_that.initiated && _that.initiated !== _evtType)) {
             return;
         }
-        _that.initialEvt = _eventType;
+        _that.initiated = _evtType;
 
-        _that.pos = ((evt.touches) && evt.touches[0]) || evt;
-        _that.x = 0;
-        _that.y = 0;
+        if (_opts.preventDefault &&
+            !_opts.isPreventDefaultErr(evt.target, _opts.preventDefaultException)) {
+            evt.preventDefault();
+        }
+        if (_opts.stopPropagation) {
+            evt.stopPropagation();
+        }
+
+        _that.startTime = _opts.getNow();
+
+        _that.startX = _that.x;
+        _that.startY = _that.y;
+        _that.absStartX = _that.x;
+        _that.absStartY = _that.y;
+
+        let point = evt.touches ? evt.touches[0] : evt;
+        _that.pointX = point.pageX;
+        _that.pointY = point.pageY;
+
+        _that.directionX = 0;
+        _that.directionY = 0;
+        _that.directionLocked = 0;
         _that.distX = 0;
         _that.distY = 0;
-        if (_opts.getTime instanceof Function) {
-            _that.startTime = _opts.getTime();
-        } else {
-            _that.startTime = Date.now();
-        }
+
+        _that.$emit(EVENT_TYPE.beforeScrollStart);
     }
 
     /**
@@ -113,42 +83,7 @@ export default class ScrollCore extends ScrollBase {
      * @memberof ScrollCore
      */
     _move (evt) {
-        console.log('_move');
         const _that = this;
-        const _opts = _that.defaultOptions;
-        if (!_opts.enabled ||
-            (!_opts.freeScroll &&!_opts.scrollX && !_opts.scrollY) ||
-            !_that.initialEvt) {
-            return;
-        }
-        let pos = ((evt.touches) && evt.touches[0]) || evt;
-        let deltaX = pos.pageX - _that.pos.pageX;
-        let deltaY = pos.pageY - _that.pos.pageY;
-        _that.pos = pos;
-
-        let _distX = (_that.distX += deltaX);
-        let _distY = (_that.distY += deltaY);
-        let _nowTime = null;
-        if (_opts.getTime instanceof Function) {
-            _nowTime = _opts.getTime();
-        } else {
-            _nowTime = Date.now();
-        }
-        if (_distX > _opts.momentumLimitDistance && (_nowTime - _that.startTime) < _opts.directionLockThreshold) {
-            if (_distX - _distY > _opts.directionLockThreshold) {
-                _that.lockDirection = DIRECTION.H;
-                deltaY = 0;
-            } else {
-                _that.lockDirection = DIRECTION.V;
-                deltaX = 0;
-            }
-            // if (_opts.eventPassthrough) {
-            //     if (_that.lockDirection)
-            // }
-            _that.x = _that.x + deltaX;
-            _that.y = _that.y + deltaY;
-            _that._scrollTo();
-        }
     }
 
     /**
@@ -158,15 +93,174 @@ export default class ScrollCore extends ScrollBase {
      * @memberof ScrollCore
      */
     _end (evt) {
-        const _that = this;
-        console.log('_end');
-        _that.moveable = false;
     }
 
-    _scrollTo () {
+    /**
+     * 使用requestAnimationFrame开启动画
+     * @param {Number} destX 水平目标位置
+     * @param {Number} destY 垂直目标位置
+     * @param {Number} duration 动画时长（ms）
+     * @param {String} 动画规则曲线方法
+     */
+    _animate (destX, destY, duration, easing) {
         const _that = this;
+        const _startX = _that.x;
+        const _startY = _that.y;
+        const startTime = getNow();
+        const destTime = startTime + time;
+
+        clearAnimationFrame(_that.animateTimer);
+        _that.animateTimer = requestAnimationFrame(_magic);
+
+        function _magic () {
+            let _now = getNow();
+            if (_now >= destTime) {
+                _that._transitionEnd(destX, destY);
+
+                if (!_that._resetPosition(duration, easing)) {
+                    _that.$emit(EVENT_TYPE.scrollEnd, {
+                        x: _that.x,
+                        y: _that.y
+                    });
+                }
+                return;
+            }
+
+            _now = (_now - startTime) / duration;
+            let _newX = (destX - _startX) * easing(_now) + startX;
+            let _newY = (destY - _startY) * easing(_now) + startY;
+            _translate(_newX, _newY);
+
+            _that.animateTimer = requestAnimationFrame(_magic);
+        }
+    }
+
+    /**
+     * 滚动到指定的位置
+     * @param {Number} x 水平目标位置
+     * @param {Number} y 垂直目标位置
+     * @param {Number} time 动画时长（ms）
+     * @param {String} 动画规则曲线方法
+     */
+    _scrollTo (x, y, time, ease) {
+        const _that = this;
+        if (x === _that.x && y === _that.y) {
+            return;
+        }
+
+        const _opts = _that.defaultOptions;
         const _scroller = _that.scroller;
-        console.log(_scroller, _that.x, _that.y);
-        _scroller.style.transform = `translate3d(${_that.x}px, ${_that.y}px, 0)`;
+
+        _that.isInTransition = _opts.useTransition && time;
+        if (!time || _that.useTransition) { // 使用transition动画效果
+            _scroller[style.transitionDuration] = time;
+            _scroller[style.transitionTimingFunction] = ease;
+            _that._translate(x, y);
+
+            if (time && _opts.probeType === probeType.PROBE_REALTIME) {
+                _startProbe();
+            } else if (_opts.probeType === probeType.PROBE_NORMAL) {
+                _that.$emit(EVENT_TYPE.scroll, {
+                    x: _that.x,
+                    y: _that.y
+                });
+                if (!time) {
+                    let _reflow = document.body.offsetHeight;
+                    if(!_resetPosition(time, ease)) {
+                        _that.$emit(EVENT_TYPE.scrollEnd, {
+                            x: _that.x,
+                            y: _that.y
+                        });
+                    }
+                }
+            }
+        } else { // 使用requestAnimationFrame做动画效果
+            _that._animate(x, y, time, easing);
+        }
+
+        /**
+         * 记录动画过程中派发滚动事件
+         */
+        function _startProbe () {
+            clearAnimationFrame(_that.probeTimer);
+            _that.probeTimer = requestAnimationFrame(_magic);
+
+            /**
+             * magic回调
+             */
+            function _magic () {
+                const pos = _that._getComputedPostion();
+                if (pos) {
+                    _that.$emit(EVENT_TYPE.scroll, {
+                        x: pos.x,
+                        y: pos.y
+                    });
+                }
+
+                if (_that.isInTransition) {
+                    _that.probeTimer = requestAnimationFrame(_magic);
+                }
+            }
+        }
+    }
+
+    /**
+     * 获取滚动位置
+     * @returns {Object|Null} 返回位置信息
+     */
+    _getComputedPostion () {
+        const _that = this;
+        const _opts = _that.defaultOptions;
+        const matrix = getStyle(_that.scroller);
+        let res = null;
+        if (matrix) {
+            if (_opts.useTransform) {
+                matrix = matrix[style.transform].split(')')[0].split(',');
+                res = {
+                    x: matrix[12] || matrix[4],
+                    y: matrix[13] || matrix[5]
+                };
+            } else {
+                res = {
+                    x: matrix.left.replace(/[^-\d.]/g, ''),
+                    y: matrix.top.replace(/[^-\d.]/g, '')
+                };
+            }
+        }
+        return res;
+    }
+
+    /**
+     * 如果滚动内容超过最大滚动距离和最小滚动距离，需要重置滚动位置
+     *
+     * @param {Number} time 动画时间
+     * @param {String} easing 动画函数
+     * @memberof ScrollCore
+     */
+    _resetPosition (time, easing) {
+
+    }
+
+    /**
+     * 滚动
+     *
+     * @param {Number} x 水平滚动距离
+     * @param {Number} y 垂直滚动距离
+     * @memberof ScrollCore
+     */
+    _translate(x, y) {
+        const _that = this;
+        const _opts = _that.defaultOptions;
+
+        if (_opts.useTransform) {
+            _that.scroller[style.transform] = `translate(${x}px, ${y}px, 0)`;
+        } else {
+            _that.scroller.left = `${x}px`;
+            _that.scroller.top = `${y}px`;
+        }
+    }
+
+    _transitionEnd (evt) {
+
     }
 }

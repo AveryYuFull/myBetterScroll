@@ -4,6 +4,6 @@
  * @export
  * @returns {Number} 返回当前的时间戳
  */
-export default function getTime () {
+export default function getNow () {
     return (window && window.performance && window.performance.timing.navigationStart) || Date.now();
 }

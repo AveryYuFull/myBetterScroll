@@ -1,6 +1,9 @@
 import getEventType from './utils/getEventType';
 import initEventListener from './utils/initEventListener';
-import getTime from './utils/getTime';
+import getNow from './utils/getNow';
+import getStyle from './utils/getStyle';
+import getRect from './utils/getRect';
+import prefixStyle from './utils/prefixStyle';
 
 export const DEFAULT_CONFIG = {
   startX: 0, // 横轴方向初始化位置
@@ -20,19 +23,70 @@ export const DEFAULT_CONFIG = {
   probeType: 0, // 触发事件的方式
   preventDefault: true, // 当事件派发后是否阻止浏览器默认行为
   preventDefaultException: { tagName: /^(INPUT|TEXTAREA|BUTTON|SELECT)$/},
+  stopPropagation: true, // 阻止事件冒泡
 
-  useWrapper: false, // 是否使用包裹元素来监听事件
+  bindToWrapper: false, // 是否使用包裹元素来监听事件
   disableMouse: false, // 是否监听鼠标相关事件
   disableTouch: false, // 是否监听 touch 相关事件
+  useTransform: true, // 是否使用 CSS3 transform 做位移
+  useTransition: true, // 是否使用 CSS3 transition 动画
 
   initEventListener: initEventListener, // 注册/解除事件监听器
   getEventType: getEventType, // 获取事件类型
-  getTime: getTime // 获取当前时间戳
+  getNow: getNow, // 获取当前时间戳
+  getStyle: getStyle, //获取元素的样式（如果有prop，就获取指定的元素样式，如果没有prop，就获取全部的样式）
+  getRect: getRect, // 获取dom元素的rect数据
+  prefixStyle: prefixStyle, // 获取兼容的样式属性
+  isPreventDefaultErr: isPreventDefaultErr // 是否可以阻止元素的默认行为 
 }
 
 export const TOUCH_EVENT = 'touch_event';
 export const MOUSE_EVENT = 'mouse_event';
+export const eventType = {
+  touchstart: TOUCH_EVENT,
+  touchmove: TOUCH_EVENT,
+  touchend: TOUCH_EVENT,
+
+  mousedown: MOUSE_EVENT,
+  mousemove: MOUSE_EVENT,
+  mouseup: MOUSE_EVENT
+}
+
 export const DIRECTION = { // 滚动方向
   H: 'horizontal',
   V: 'vertical'
+}
+
+/**
+ * 事件类型
+ * @exports
+ */
+export const EVENT_TYPE = {
+  refresh: 'refresh', // 刷新事件
+  beforeScrollStart: 'beforeScrollStart', // 滚动开始前
+  scroll: 'scroll', // 滚动事件
+  scrollEnd: 'scrollEnd' // 滚动结束事件
+};
+
+/**
+ * 动画兼容样式
+ */
+export const style = {
+  transform: prefixStyle('transform'),
+  transformOrigin: prefixStyle('transformOrigin'),
+
+  transition: prefixStyle('transition'),
+  transitionTimingFunction: prefixStyle('transitionTimingFunction'),
+  transitionDuration: prefixStyle('transitionDuration'),
+  transitionDelay: prefixStyle('transitionDelay'),
+  transitionEnd: prefixStyle('transitionEnd')
+}
+
+/**
+ * 派发scroll事件的选项
+ */
+export const probeType = {
+  PROBE_DEBOUNCE: 1, // 非实时的派发scroll事件
+  PROBE_NORMAL: 2, // 实时派发scroll事件
+  PROBE_REALTIME: 3 // 不仅在实时派发scroll事件，同时在momentTime时也派发scroll事件
 }

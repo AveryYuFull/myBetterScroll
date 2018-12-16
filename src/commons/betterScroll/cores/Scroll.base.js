@@ -1,5 +1,6 @@
 import DefaultOptions from '../utils/DefaultOptions';
-import { DEFAULT_CONFIG } from '../constants';
+import { DEFAULT_CONFIG, EVENT_TYPE,
+    style } from '../constants';
 
 export default class ScrollBase extends DefaultOptions {
     /**
@@ -38,20 +39,102 @@ export default class ScrollBase extends DefaultOptions {
     _handleDomEvent () {
         const _that = this;
         const _opts = _that.defaultOptions;
-        const _target = (( _opts && _opts.useWrapper) && _that.wrapper) || window;
+        const _target = (( _opts && _opts.bindToWrapper) && _that.wrapper) || window;
         const _initEventListener = _opts.initEventListener;
 
-        if (_initEventListener instanceof Function) {
-            const _getEventType = _opts.getEventType;
-            let _evtType = {};
-            if (_getEventType instanceof Function) {
-                _evtType = _getEventType();
-            }
-            if (_evtType) { // 注册mousedown/mousemove/mouseup事件
-                _initEventListener(_that.wrapper, _evtType['event_start'], this, true);
-                _initEventListener(_target, [_evtType['event_move'], _evtType['event_end']], this, true);
-            }
+        let _evtType = _opts.getEventType();
+        if (_evtType) { // 注册mousedown/mousemove/mouseup事件
+            _initEventListener(_that.wrapper, _evtType['event_start'], this, true);
+            _initEventListener(_target, [_evtType['event_move'], _evtType['event_end']], this, true);
         }
+
+        _initEventListener(_that.scroller, style.transitionEnd, this);
+    }
+
+    /**
+     * 获取元素dom节点
+     *
+     * @param {String|HTMLElement} el 元素选择器/dom节点对象
+     * @returns {Boolean} 获取元素是否成功
+     * @memberof ScrollBase
+     */
+    _querySelector (el) {
+        if (!el) {
+            console.error('element is required');
+            return false;
+        }
+        const _that = this;
+        let _wrapper = el;
+        let _scroller = null;
+        if (typeof el === 'string') {
+            _wrapper = document.querySelector(el);
+        }
+        _scroller = _wrapper && _wrapper.children[0];
+        if (!_scroller) {
+            console.error('scroll element is required');
+            return false;
+        }
+
+        _that.wrapper = _wrapper;
+        _that.scroller = _scroller;
+        return true;
+    }
+
+    /**
+     * 页面重新刷新数据
+     *
+     * @memberof ScrollBase
+     */
+    _refresh () {
+        const _that = this;
+        const _opts = _that.defaultOptions;
+        const _wrapper = _that.wrapper;
+        const _scroller = _that.scroller;
+
+        let _style = _opts.getStyle(_wrapper, 'position');
+        let _isWrapperStatic = _style ? _style === 'static' : true;
+
+        let _wrapRect = _opts.getRect(_wrapper);
+        _that.wrapW =_wrapRect.width;
+        _that.wrapH = _wrapRect.height;
+
+        let _scrollRect = _opts.getRect(_scroller);
+        _that.scrollW = _scrollRect.width;
+        _that.scrollH = _scrollRect.height;
+
+        // 获取reletiveX、reletiveY
+        let _reletiveX = _scrollRect.left;
+        let _reletiveY = _scrollRect.top;
+        if (_isWrapperStatic) {
+            _reletiveX -= _wrapper.left;
+            _reletiveY -= _wrapper.top;
+        }
+
+        _that.maxScrollX = _that.wrapW - _that.scrollW;
+        _that.maxScrollY = _that.wrapH - _that.scrollH;
+        _that.minScrollX = 0;
+        _that.minScrollY = 0;
+        if (_that.maxScrollX < 0) {
+            _that.maxScrollX -= _reletiveX;
+            _that.minScrollX = -_reletiveX;
+        }
+        if (_that.maxScrollY < 0) {
+            _that.maxScrollY -= _reletiveY;
+            _that.minScrollY = -_reletiveY;
+        }
+
+        let _hasVScroll = _opts.scrollY && (_that.maxScrollY < _that.minScrollY);
+        let _hasHScroll = _opts.scrollX && (_that.maxScrollX < _that.minScrollX);
+        if (!_hasVScroll) {
+            _that.maxScrollY = _that.minScrollY;
+            _that.scrollH = _that.wrapH;
+        }
+        if (!_hasHScroll) {
+            _that.maxScrollX = _that.minScrollX;
+            _that.scrollW = _that.wrapW;
+        }
+
+        _that.$emit(EVENT_TYPE.refresh);
     }
 
     /**
@@ -76,6 +159,12 @@ export default class ScrollBase extends DefaultOptions {
             case 'touchend':
                 _that._end(evt);
                 break;
+            case 'webkitTransitionEnd':
+            case 'oTransitionEnd':
+            case 'MSTransitionEnd':
+            case 'transitionend':
+                _that._transitionEnd(evt)
+                break;
         }
     }
 
@@ -87,25 +176,11 @@ export default class ScrollBase extends DefaultOptions {
      * @memberof ScrollInit
      */
     _init (el) {
-        if (!el) {
-            console.error('element is required');
-            return;
-        }
         const _that = this;
-        let _wrapper = el;
-        let _scroller = null;
-        if (typeof el === 'string') {
-            _wrapper = document.querySelector(el);
-        }
-        _scroller = _wrapper && _wrapper.children[0];
-        if (!_scroller) {
-            console.error('scroll element is required');
+        if (!_that._querySelector(el)) {
             return;
         }
-
-        _that.wrapper = _wrapper;
-        _that.scroller = _scroller;
-
         _that._handleDomEvent();
+        _that._refresh();
     }
 }
