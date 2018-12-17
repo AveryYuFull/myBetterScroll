@@ -72,6 +72,7 @@ export default class ScrollCore extends ScrollBase {
         _that.directionLocked = 0;
         _that.distX = 0;
         _that.distY = 0;
+        _that.moved = false;
 
         _that.$emit(EVENT_TYPE.beforeScrollStart);
     }
@@ -84,6 +85,105 @@ export default class ScrollCore extends ScrollBase {
      */
     _move (evt) {
         const _that = this;
+        const _opts = _that.defaultOptions;
+
+        if (!_opts.enabled || eventType[evt.type] !== _that.initiated) {
+            return;
+        }
+
+        if (_opts.preventDefault) {
+            evt.preventDefault();
+        }
+        if (_opts.stopPropagation) {
+            evt.stopPropagation();
+        }
+
+        let point = evt.touches ? evt.touches[0] : evt;
+        let deltaX = point.pageX - _that.pointX;
+        let deltaY = point.pageY - _that.pointY;
+        _that.pointX = point.pageX;
+        _that.pointY = point.pageY;
+        _that.distX += deltaX;
+        _that.distY += deltaY;
+        let _absDistX = Math.abs(_that.distX);
+        let _absDistY = Math.abs(_that.distY);
+        let timestamp = getNow();
+
+        if (!_that.directionLocked && !_opts.freeScroll &&
+            (!_that.hasHScroll || !_that.hasVScroll)) {
+            if (_absDistX - _absDistY > _opts.directionLockThreshold) {
+                _that.directionLocked = 'h';
+            } else if (_absDistY - _absDistX > _opts.directionLockThreshold) {
+                _that.directionLocked = 'v';
+            } else {
+                _that.directionLocked = 'n';
+            }
+        }
+
+        if (_that.direcionLocked === 'h') {
+            if (_opts.eventPassthrough === 'horizontal') {
+                _that.initiated = false;
+                return;
+            } else if (_opts.eventPassthrough === 'vertical') {
+                evt.preventDefault();
+            }
+            deltaY = 0;
+        } else if (_that.directionLocked === 'v') {
+            if (_opts.eventPassthrough === 'horizontal') {
+                evt.preventDefault();
+            } else if (_opts.eventPassthrough === 'vertical') {
+                _that.initiated = false;
+                return;
+            }
+            deltaX = 0;
+        }
+
+        deltaX = _that.hasHScroll ? deltaX : 0;
+        deltaY = _that.hasVScroll ? deltaY: 0;
+
+        let _newX = _that.x + deltaX;
+        let _newY = _that.y + deltaY;
+
+        let _bounce = _opts.bounce;
+        let _left = false;
+        let _right = false;
+        let _top = false;
+        let _bottom = false;
+        if (_bounce) {
+            _left = typeof _bounce.left === 'undefined' ? true : _bounce.left;
+            _right = typeof _bounce.right === 'undefined' ? true : _bounce.right;
+            _top = typeof _bounce.top === 'undefined' ? true : _bounce.top;
+            _bottom = typeof _bounce.bottom === 'undefined' ? true : _bounce.bottom;
+        }
+        if (_newX < _that.maxScrollX || _newX > _that.minScrollX) {
+            if (_left || _right) {
+                _newX = _that.x + deltaX / 3;
+            } else {
+                _newX = _that.x + deltaX;
+            }
+        }
+
+        if (!_that.moved) {
+            _that.moved = true;
+            _that.$emit(EVENT_TYPE.scrollStart, {
+                x: _that.x,
+                y: _that.y
+            });
+        }
+        _that._scrollTo(_newX, _newY);
+
+        if (timestamp - _that.startTime > _opts.momentumLimitTime) {
+            _that.timestamp = getNow();
+            _that.startX = _that.x;
+            _that.startY = _that.y;
+
+            if (_opts.probeType === probeType.PROBE_DEBOUNCE) {
+                _that.$emit(EVENT_TYPE.scroll, {
+                    x: _that.x,
+                    y: _that.y
+                });
+            }
+        }
     }
 
     /**
@@ -93,6 +193,22 @@ export default class ScrollCore extends ScrollBase {
      * @memberof ScrollCore
      */
     _end (evt) {
+        const _that = this;
+        const _opts = _that.defaultOptions;
+        if (!_that.enabled || eventType[evt.type] !== _that.initiated) {
+            return;
+        }
+
+        if (_opts.preventDefault && !_opts.isPreventDefaultErr(evt.target, _opts.preventDefaultException)) {
+            evt.preventDefault();
+        }
+        if (_opts.stopPropagation) {
+            _opts.stopPropagation();
+        }
+
+        if (_that._resetPosition(_opts.bounceTime, _opts.ease.bounce)) {
+
+        }
     }
 
     /**
@@ -100,7 +216,7 @@ export default class ScrollCore extends ScrollBase {
      * @param {Number} destX 水平目标位置
      * @param {Number} destY 垂直目标位置
      * @param {Number} duration 动画时长（ms）
-     * @param {String} 动画规则曲线方法
+     * @param {String} easing 动画规则曲线方法
      */
     _animate (destX, destY, duration, easing) {
         const _that = this;
@@ -112,6 +228,9 @@ export default class ScrollCore extends ScrollBase {
         clearAnimationFrame(_that.animateTimer);
         _that.animateTimer = requestAnimationFrame(_magic);
 
+        /**
+         * 动画步骤执行方法
+         */
         function _magic () {
             let _now = getNow();
             if (_now >= destTime) {
@@ -131,6 +250,14 @@ export default class ScrollCore extends ScrollBase {
             let _newY = (destY - _startY) * easing(_now) + startY;
             _translate(_newX, _newY);
 
+            // 如果probeType为时时记录滚动条状态
+            if (_opts.probeType === probeType.PROBE_REALTIME) {
+                _that.$emit(EVENT_TYPE.scroll, {
+                    x: _that.x,
+                    y: _that.y
+                });
+            }
+
             _that.animateTimer = requestAnimationFrame(_magic);
         }
     }
@@ -140,9 +267,9 @@ export default class ScrollCore extends ScrollBase {
      * @param {Number} x 水平目标位置
      * @param {Number} y 垂直目标位置
      * @param {Number} time 动画时长（ms）
-     * @param {String} 动画规则曲线方法
+     * @param {String} easing 动画规则曲线方法
      */
-    _scrollTo (x, y, time, ease) {
+    _scrollTo (x, y, time, easing) {
         const _that = this;
         if (x === _that.x && y === _that.y) {
             return;
@@ -150,11 +277,10 @@ export default class ScrollCore extends ScrollBase {
 
         const _opts = _that.defaultOptions;
         const _scroller = _that.scroller;
-
         _that.isInTransition = _opts.useTransition && time;
         if (!time || _that.useTransition) { // 使用transition动画效果
             _scroller[style.transitionDuration] = time;
-            _scroller[style.transitionTimingFunction] = ease;
+            _scroller[style.transitionTimingFunction] = easing.style;
             _that._translate(x, y);
 
             if (time && _opts.probeType === probeType.PROBE_REALTIME) {
@@ -166,7 +292,7 @@ export default class ScrollCore extends ScrollBase {
                 });
                 if (!time) {
                     let _reflow = document.body.offsetHeight;
-                    if(!_resetPosition(time, ease)) {
+                    if (!_resetPosition(time, ease)) {
                         _that.$emit(EVENT_TYPE.scrollEnd, {
                             x: _that.x,
                             y: _that.y
@@ -175,7 +301,7 @@ export default class ScrollCore extends ScrollBase {
                 }
             }
         } else { // 使用requestAnimationFrame做动画效果
-            _that._animate(x, y, time, easing);
+            _that._animate(x, y, time, easing.fn);
         }
 
         /**
@@ -211,7 +337,7 @@ export default class ScrollCore extends ScrollBase {
     _getComputedPostion () {
         const _that = this;
         const _opts = _that.defaultOptions;
-        const matrix = getStyle(_that.scroller);
+        let matrix = getStyle(_that.scroller);
         let res = null;
         if (matrix) {
             if (_opts.useTransform) {
@@ -235,10 +361,35 @@ export default class ScrollCore extends ScrollBase {
      *
      * @param {Number} time 动画时间
      * @param {String} easing 动画函数
+     * @returns {Boolean} 更新滚动条成功／失败
      * @memberof ScrollCore
      */
     _resetPosition (time, easing) {
+        const _that = this;
+        let _x = _that.x;
+        let _y = _that.y;
 
+        if (!_that.hasVScroll || !_that.hasHScroll) {
+            return false;
+        }
+
+        if (_x > _that.minScrollX) {
+            _x = _that.minScrollX;
+        } else if (_x < _that.maxScrollX) {
+            _x = _that.maxScrollX;
+        }
+        if (_y > _that.minScrollY) {
+            _y = _that.minScrollY;
+        } else if (_y < _that.maxScrollY) {
+            _y = _that.maxScrollY;
+        }
+
+        if (_x === _that.x && _y === _that.y) {
+            return false;
+        }
+
+        _that._scrollTo(_x, _y, time, easing);
+        return true;
     }
 
     /**
@@ -260,7 +411,32 @@ export default class ScrollCore extends ScrollBase {
         }
     }
 
+    /**
+     * 动画结束的回调方法
+     * @param {Event} evt 事件对象
+     * @private
+     */
     _transitionEnd (evt) {
+        const _that = this;
+        const _opts = _that.defaultOptions;
+        if (_that.scroller && _that.isInTransition) {
+            _that._transitionTime(0);
+            if (!_that._resetPosition(_opts.bounceTime, _opts.ease.bounce)) {
+                _that.isInTransition = false;
+                _that.$emit(EVENT_TYPE.scrollEnd, {
+                    x: _that.x,
+                    y: _that.y
+                });
+            }
+        }
+    }
 
+    /**
+     * 设置动画时间
+     * @param {Number} time 动画时间
+     */
+    _transitionTime (time = 0) {
+        const _that = this;
+        _that.scroller[style.transitionDuration] = time;
     }
 }

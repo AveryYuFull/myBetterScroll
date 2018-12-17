@@ -39,7 +39,7 @@ export default class ScrollBase extends DefaultOptions {
     _handleDomEvent () {
         const _that = this;
         const _opts = _that.defaultOptions;
-        const _target = (( _opts && _opts.bindToWrapper) && _that.wrapper) || window;
+        const _target = ((_opts && _opts.bindToWrapper) && _that.wrapper) || window;
         const _initEventListener = _opts.initEventListener;
 
         let _evtType = _opts.getEventType();
@@ -123,8 +123,8 @@ export default class ScrollBase extends DefaultOptions {
             _that.minScrollY = -_reletiveY;
         }
 
-        let _hasVScroll = _opts.scrollY && (_that.maxScrollY < _that.minScrollY);
-        let _hasHScroll = _opts.scrollX && (_that.maxScrollX < _that.minScrollX);
+        let _hasVScroll = _that.hasVScroll = _opts.scrollY && (_that.maxScrollY < _that.minScrollY);
+        let _hasHScroll = _that.hasHScroll = _opts.scrollX && (_that.maxScrollX < _that.minScrollX);
         if (!_hasVScroll) {
             _that.maxScrollY = _that.minScrollY;
             _that.scrollH = _that.wrapH;
@@ -163,7 +163,7 @@ export default class ScrollBase extends DefaultOptions {
             case 'oTransitionEnd':
             case 'MSTransitionEnd':
             case 'transitionend':
-                _that._transitionEnd(evt)
+                _that._transitionEnd(evt);
                 break;
         }
     }
