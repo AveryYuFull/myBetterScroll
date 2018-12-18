@@ -5,6 +5,7 @@ import getStyle from './utils/getStyle';
 import getRect from './utils/getRect';
 import prefixStyle from './utils/prefixStyle';
 import { ease } from './utils/ease';
+import getMomentum from './utils/getMomentum';
 
 export const DEFAULT_CONFIG = {
     startX: 0, // 横轴方向初始化位置
@@ -39,7 +40,8 @@ export const DEFAULT_CONFIG = {
     getRect: getRect, // 获取dom元素的rect数据
     prefixStyle: prefixStyle, // 获取兼容的样式属性
     isPreventDefaultErr: isPreventDefaultErr, // 是否可以阻止元素的默认行为
-    ease: ease // 贝塞尔曲线
+    ease: ease, // 贝塞尔曲线
+    getMomentum: getMomentum // 根据滑动的时间和距离算出动量
 };
 
 export const TOUCH_EVENT = 'touch_event';

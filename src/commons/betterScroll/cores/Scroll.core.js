@@ -162,6 +162,13 @@ export default class ScrollCore extends ScrollBase {
                 _newX = _that.x + deltaX;
             }
         }
+        if (_newY < _that.maxScrollY || _newY > _that.minScrollY) {
+            if (_top || _bottom) {
+                _newY = _that.y + deltaY / 3;
+            } else {
+                _newY = _that.y + deltaY;
+            }
+        }
 
         if (!_that.moved) {
             _that.moved = true;
@@ -207,7 +214,27 @@ export default class ScrollCore extends ScrollBase {
         }
 
         if (_that._resetPosition(_opts.bounceTime, _opts.ease.bounce)) {
+            return;
+        }
 
+        _that.endTime = getNow();
+        let _absDistX = Math.abs(_that.x - _that.startX);
+        let _absDistY = Math.abs(_that.y - _that.startY);
+        if (_opts.momentum &&
+            (_that.endTime - _that.startTime < _opts.momentumLimitTime) && (_absDistX > _opts.momentumLimitDistance || _absDistY > _opts.momentumLimitDistance)) {
+            let _left = false;
+            let _right = false;
+            let _top = false;
+            let _bottom = false;
+            if (_bounce) {
+                _left = typeof _bounce.left === 'undefined' ? true : _bounce.left;
+                _right = typeof _bounce.right === 'undefined' ? true : _bounce.right;
+                _top = typeof _bounce.top === 'undefined' ? true : _bounce.top;
+                _bottom = typeof _bounce.bottom === 'undefined' ? true : _bounce.bottom;
+            }
+            const _wrapWidth = _that.hasHScroll && (_left || _right) ? _that.wrapW : 0;
+            const _wrapHeight = _that.hasVScroll && (_top || _bottom) ? _that.wrapH : 0;
+            // const _momentumX = _opts.get
         }
     }
 
