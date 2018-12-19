@@ -45,7 +45,8 @@ export default function extend (target, ...rest) {
         }
     }
     return target;
-   /**
+
+    /**
      * 判断是否为对象
      *
      * @param {*} obj 对象

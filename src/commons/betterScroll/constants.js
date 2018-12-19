@@ -6,6 +6,7 @@ import getRect from './utils/getRect';
 import prefixStyle from './utils/prefixStyle';
 import { ease } from './utils/ease';
 import getMomentum from './utils/getMomentum';
+import isPreventDefaultErr from './utils/isPreventDefaultErr';
 
 export const DEFAULT_CONFIG = {
     startX: 0, // 横轴方向初始化位置
@@ -24,7 +25,7 @@ export const DEFAULT_CONFIG = {
     momentumLimitDistance: 15, // 只有在屏幕上快速滑动的距离大于 momentumLimitDistance，才能开启 momentum 动画
     probeType: 0, // 触发事件的方式
     preventDefault: true, // 当事件派发后是否阻止浏览器默认行为
-    preventDefaultException: { tagName: /^(INPUT|TEXTAREA|BUTTON|SELECT)$/},
+    preventDefaultException: {tagName: /^(INPUT|TEXTAREA|BUTTON|SELECT)$/},
     stopPropagation: true, // 阻止事件冒泡
 
     bindToWrapper: false, // 是否使用包裹元素来监听事件
@@ -57,8 +58,10 @@ export const eventType = {
 };
 
 export const DIRECTION = { // 滚动方向
-    H: 'horizontal',
-    V: 'vertical'
+    up: 'up',
+    down: 'down',
+    left: 'left',
+    right: 'right'
 };
 
 /**
@@ -70,7 +73,8 @@ export const EVENT_TYPE = {
     beforeScrollStart: 'beforeScrollStart', // 滚动开始前
     scroll: 'scroll', // 滚动事件
     scrollEnd: 'scrollEnd', // 滚动结束事件
-    scrollStart: 'scrollStart' // 滚动开始
+    scrollStart: 'scrollStart', // 滚动开始
+    touchEnd: 'touchEnd' // 触摸结束
 };
 
 /**

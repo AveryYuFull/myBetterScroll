@@ -2,7 +2,7 @@
  *检测浏览器是否支持passive
  *
  * @export
- * @returns
+ * @returns {*}
  */
 export default function supportPassive () {
     let _support = false;
@@ -15,10 +15,6 @@ export default function supportPassive () {
         });
         window.addEventListener('test', null, opts);
     } catch (err) {
-    }
-
-    supportPassive = function () {
-        return _support;
     }
 
     return _support;

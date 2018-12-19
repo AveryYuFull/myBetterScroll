@@ -28,6 +28,7 @@ const vendor = (function () {
  *
  * @export
  * @param {String} style 元素的样式
+ * @returns {*}
  */
 export default function prefixStyle (style) {
     if (!style || !vendor) {

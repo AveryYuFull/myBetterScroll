@@ -81,6 +81,28 @@ export default class ScrollBase extends DefaultOptions {
     }
 
     /**
+     * 管理动画状态
+     * @private
+     */
+    _watchTransition () {
+        if (typeof Object.defineProperty === 'undefined') {
+            return;
+        }
+        const _that = this;
+        let _isInTransition = false;
+        const _opts = _that.defaultOptions;
+        const _key = _opts.useTransition ? 'isInTransition' : 'isAnimating';
+        Object.defineProperty(_that, _key, {
+            get () {
+                return _isInTransition;
+            },
+            set (val) {
+                _isInTransition = val;
+            }
+        });
+    }
+
+    /**
      * 页面重新刷新数据
      *
      * @memberof ScrollBase
@@ -172,7 +194,6 @@ export default class ScrollBase extends DefaultOptions {
      * 初始化
      *
      * @param {HTMLElement} el dom元素
-     * @returns {*}
      * @memberof ScrollInit
      */
     _init (el) {
@@ -181,6 +202,7 @@ export default class ScrollBase extends DefaultOptions {
             return;
         }
         _that._handleDomEvent();
+        _that._watchTransition();
         _that._refresh();
     }
 }

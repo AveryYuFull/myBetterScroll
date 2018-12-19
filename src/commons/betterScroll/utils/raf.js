@@ -9,7 +9,7 @@ const noop = function () {};
         return;
     }
 
-    const _lastTime = 0;
+    let _lastTime = 0;
     const _vendors = ['webkit', 'moz'];
 
     for (let i = 0; i < _vendors.length && !window.requestAnimationFrame; i++) {
@@ -25,18 +25,18 @@ const noop = function () {};
             let _timeToCall = Math.max(0, 16 - (_currTime - _lastTime));
             let id = setTimeout(function () {
                 if (callback instanceof Function) {
-                    callback(_currTime + _timeToCall)
+                    callback(_currTime + _timeToCall);
                 }
             }, _timeToCall);
             _lastTime = _currTime + _timeToCall;
             return id;
-        }
+        };
     }
 
     if (!window.cancelAnimationFrame) {
         window.cancelAnimationFrame = function (id) {
             window.clearTimeout(id);
-        }
+        };
     }
 })();
 
@@ -119,7 +119,7 @@ function _addList (list, data) {
 }
 
 // 定义requestAnimationFrame
-const _raf = function (callback) {
+const requestAnimationFrame = function (callback) {
     const _entry = _find(callbackList, item => item.callback === callback);
     if (_entry) {
         return _entry.requestId;
@@ -137,17 +137,17 @@ const _raf = function (callback) {
         callback
     });
     return requestId;
-}
+};
 
 // 定义cancelAnimationFrame
-const _caf = function (id) {
+const cancelAnimationFrame = function (id) {
     if (typeof id !== 'undefined') {
         _removeItem(callbackList, item => item.requestId === id);
         window.cancelAnimationFrame(id);
     }
-}
+};
 
-export const {
-    requestAnimationFrame: raf,
-    cancelAnimationFrame: caf
+export {
+    requestAnimationFrame,
+    cancelAnimationFrame
 };

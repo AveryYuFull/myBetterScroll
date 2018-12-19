@@ -4,12 +4,12 @@ module.exports = {
     root: true,
     globals: {
     },
-    parser: 'babel-eslint',
     'env': {
         'es6': true,
         'browser': true
     },
     parserOptions: {
+        parser: 'babel-eslint',
         "ecmaVersion": 6,
         "ecmaFeatures": {
             "vue": true
@@ -17,10 +17,15 @@ module.exports = {
         sourceType: 'module'
     },
     // https://github.com/feross/standard/blob/master/RULES.md#javascript-standard-style
-    extends: 'standard',
+    extends: [
+        // https://github.com/vuejs/eslint-plugin-vue#priority-a-essential-error-prevention
+        // consider switching to `plugin:vue/strongly-recommended` or `plugin:vue/recommended` for stricter rules.
+        'plugin:vue/essential',
+        // https://github.com/standard/standard/blob/master/docs/RULES-en.md
+        'standard'
+    ],
     // required to lint *.vue files
     plugins: [
-        'html',
         'vue'
     ],
     // add your custom rules here

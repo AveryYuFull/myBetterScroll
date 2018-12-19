@@ -6,15 +6,15 @@
 
 <script>
 // import HelloWorld from './components/HelloWorld'
-import BList from './components/List'
+import BList from './components/List';
 
 export default {
-  name: 'App',
-  components: {
+    name: 'App',
+    components: {
     // HelloWorld
-    BList
-  }
-}
+        BList
+    }
+};
 </script>
 
 <style>

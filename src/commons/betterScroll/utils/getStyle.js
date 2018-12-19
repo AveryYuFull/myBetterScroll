@@ -13,7 +13,7 @@ export default function getStyle (el, prop) {
         res = (window && window.getComputedStyle)
             ? window.getComputedStyle(el, null) : el.currentStyle;
         if (res && prop) {
-            res = styles[prop];
+            res = res[prop];
         }
     }
     return res;
