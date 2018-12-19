@@ -184,6 +184,7 @@ export default class ScrollCore extends ScrollBase {
                 y: _that.y
             });
         }
+
         _that._scrollTo(_newX, _newY);
 
         if (timestamp - _that.startTime > _opts.momentumLimitTime) {
@@ -337,7 +338,6 @@ export default class ScrollCore extends ScrollBase {
      * @param {String} easing 动画规则曲线方法
      */
     _scrollTo (x, y, time, easing) {
-        debugger;
         const _that = this;
         if (x === _that.x && y === _that.y) {
             _that.$emit(EVENT_TYPE.scrollEnd, {
@@ -476,10 +476,10 @@ export default class ScrollCore extends ScrollBase {
         const _opts = _that.defaultOptions;
 
         if (_opts.useTransform) {
-            _that.scroller[style.transform] = `translate(${x}px, ${y}px, 0)`;
+            _that.scrollerStyle[style.transform] = `translate(${x}px, ${y}px)`;
         } else {
-            _that.scroller.left = `${x}px`;
-            _that.scroller.top = `${y}px`;
+            _that.scrollerStyle.left = `${x}px`;
+            _that.scrollerStyle.top = `${y}px`;
         }
     }
 
@@ -509,7 +509,7 @@ export default class ScrollCore extends ScrollBase {
      */
     _transitionTime (time = 0) {
         const _that = this;
-        _that.scroller[style.transitionDuration] = time;
+        _that.scrollerStyle[style.transitionDuration] = time;
     }
 
     /**

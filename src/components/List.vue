@@ -36,7 +36,7 @@ ul {
     padding: 0;
 }
 .bs_wrapper {
-    overflow: auto;
+    overflow: hidden;
     height: 350px;
     border: 1px solid rgba(0, 0, 0, 0.3);
     .bs_wrapper-cont {

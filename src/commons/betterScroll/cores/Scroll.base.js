@@ -77,6 +77,7 @@ export default class ScrollBase extends DefaultOptions {
 
         _that.wrapper = _wrapper;
         _that.scroller = _scroller;
+        _that.scrollerStyle = _that.scroller.style;
         return true;
     }
 
@@ -128,8 +129,8 @@ export default class ScrollBase extends DefaultOptions {
         let _reletiveX = _scrollRect.left;
         let _reletiveY = _scrollRect.top;
         if (_isWrapperStatic) {
-            _reletiveX -= _wrapper.left;
-            _reletiveY -= _wrapper.top;
+            _reletiveX -= _wrapRect.left;
+            _reletiveY -= _wrapRect.top;
         }
 
         _that.maxScrollX = _that.wrapW - _that.scrollW;
@@ -201,6 +202,8 @@ export default class ScrollBase extends DefaultOptions {
         if (!_that._querySelector(el)) {
             return;
         }
+        _that.x = 0;
+        _that.y = 0;
         _that._handleDomEvent();
         _that._watchTransition();
         _that._refresh();

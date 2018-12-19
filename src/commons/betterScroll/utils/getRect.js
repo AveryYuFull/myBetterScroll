@@ -19,7 +19,7 @@ export default function getRect (el) {
         } else {
             res = {
                 width: el.offsetWidth,
-                height: el.offsetHeigth,
+                height: el.offsetHeight,
                 top: el.offsetTop,
                 left: el.offsetLeft
             };
