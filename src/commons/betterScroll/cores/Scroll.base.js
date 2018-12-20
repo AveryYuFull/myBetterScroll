@@ -180,6 +180,7 @@ export default class ScrollBase extends DefaultOptions {
                 break;
             case 'mouseup':
             case 'touchend':
+                console.log('mouseup');
                 _that._end(evt);
                 break;
             case 'webkitTransitionEnd':

@@ -69,6 +69,7 @@ export default class ScrollCore extends ScrollBase {
         let point = evt.touches ? evt.touches[0] : evt;
         _that.pointX = point.pageX;
         _that.pointY = point.pageY;
+        console.log('start-->', point);
 
         // _that.directionX = 0;
         // _that.directionY = 0;
@@ -114,6 +115,7 @@ export default class ScrollCore extends ScrollBase {
         let _absDistX = Math.abs(_that.distX);
         let _absDistY = Math.abs(_that.distY);
         let timestamp = _opts.getNow();
+        console.log('move--->', point);
 
         if (!_that.directionLocked && !_opts.freeScroll &&
             (!_that.hasHScroll || !_that.hasVScroll)) {
@@ -210,10 +212,10 @@ export default class ScrollCore extends ScrollBase {
     _end (evt) {
         const _that = this;
         const _opts = _that.defaultOptions;
-        if (!_that.enabled || eventType[evt.type] !== _that.initiated) {
+        if (!_opts.enabled || eventType[evt.type] !== _that.initiated) {
             return;
         }
-        _that.initated = false;
+        _that.initiated = false;
 
         _that.$emit(EVENT_TYPE.touchEnd, {
             x: _that.x,
@@ -224,7 +226,7 @@ export default class ScrollCore extends ScrollBase {
             evt.preventDefault();
         }
         if (_opts.stopPropagation) {
-            _opts.stopPropagation();
+            evt.stopPropagation();
         }
 
         let _newX = Math.round(_that.x);
