@@ -69,7 +69,6 @@ export default class ScrollCore extends ScrollBase {
         let point = evt.touches ? evt.touches[0] : evt;
         _that.pointX = point.pageX;
         _that.pointY = point.pageY;
-        console.log('start-->', point);
 
         // _that.directionX = 0;
         // _that.directionY = 0;
@@ -115,7 +114,11 @@ export default class ScrollCore extends ScrollBase {
         let _absDistX = Math.abs(_that.distX);
         let _absDistY = Math.abs(_that.distY);
         let timestamp = _opts.getNow();
-        console.log('move--->', point);
+
+        // if ((timestamp - _that.endTime) > _opts.momentumLimitDistance &&
+        //     (_absDistX < _opts.momentumLimitDistance && _absDistY < _opts.momentumLimitDistance)) {
+        //     return;
+        // }
 
         if (!_that.directionLocked && !_opts.freeScroll &&
             (!_that.hasHScroll || !_that.hasVScroll)) {
@@ -186,11 +189,10 @@ export default class ScrollCore extends ScrollBase {
                 y: _that.y
             });
         }
-
         _that._scrollTo(_newX, _newY);
 
         if (timestamp - _that.startTime > _opts.momentumLimitTime) {
-            _that.timestamp = _opts.getNow();
+            _that.startTime = _opts.getNow();
             _that.startX = _that.x;
             _that.startY = _that.y;
 
@@ -251,6 +253,7 @@ export default class ScrollCore extends ScrollBase {
             let _right = false;
             let _top = false;
             let _bottom = false;
+            const _bounce = _opts.bounce;
             if (_bounce) {
                 _left = typeof _bounce.left === 'undefined' ? true : _bounce.left;
                 _right = typeof _bounce.right === 'undefined' ? true : _bounce.right;
@@ -262,10 +265,10 @@ export default class ScrollCore extends ScrollBase {
             const _wrapHeight = ((_directionY === DIRECTION.top && _bottom) ||
                 (_directionY === DIRECTION.bottom && _top)) ? _that.wrapH : 0;
             const _momentumX = _that.hasHScroll ? _opts.getMomentum(_that.x, _that.startX,
-                _that.endTime - _that.startTime, _that.maxScrollX, _that.minScrollX, _wrapWidth, _opts)
+                _duration, _that.maxScrollX, _that.minScrollX, _wrapWidth, _opts)
                 : {destination: _newX, duration: 0};
             const _momentumY = _that.hasVScroll ? _opts.getMomentum(_that.y, _that.startY,
-                _that.endTime - _that.startTime, _that.maxScrollY, _that.minScrollY, _wrapHeight, _opts)
+                _duration, _that.maxScrollY, _that.minScrollY, _wrapHeight, _opts)
                 : {destination: _newY, duration: 0};
             _time = Math.max(_momentumX.duration, _momentumY.duration);
             _newX = _momentumX.destination;
@@ -292,7 +295,7 @@ export default class ScrollCore extends ScrollBase {
         const _startX = _that.x;
         const _startY = _that.y;
         const startTime = _opts.getNow();
-        const destTime = startTime + time;
+        const destTime = startTime + duration;
 
         cancelAnimationFrame(_that.animateTimer);
         _that.animateTimer = requestAnimationFrame(_magic);
@@ -316,9 +319,9 @@ export default class ScrollCore extends ScrollBase {
             }
 
             _now = (_now - startTime) / duration;
-            let _newX = (destX - _startX) * easing(_now) + startX;
-            let _newY = (destY - _startY) * easing(_now) + startY;
-            _translate(_newX, _newY);
+            let _newX = (destX - _startX) * easing(_now) + _startX;
+            let _newY = (destY - _startY) * easing(_now) + _startY;
+            _that._translate(_newX, _newY);
 
             // 如果probeType为时时记录滚动条状态
             if (_opts.probeType === probeType.PROBE_REALTIME) {
@@ -330,6 +333,25 @@ export default class ScrollCore extends ScrollBase {
 
             _that.animateTimer = requestAnimationFrame(_magic);
         }
+    }
+
+    /**
+     * 设置动画时间
+     * @param {Number} time 动画时间
+     */
+    _transitionTime (time = 0) {
+        const _that = this;
+        _that.scrollerStyle[style.transitionDuration] = time + 'ms';
+    }
+
+    /**
+     * 动画曲线函数
+     * @param {*} easing 动画曲线
+     * @private
+     */
+    _transitionTimingFunction (easing) {
+        const _that = this;
+        _that.scrollerStyle[style.transitionTimingFunction] = easing;
     }
 
     /**
@@ -350,11 +372,10 @@ export default class ScrollCore extends ScrollBase {
         }
 
         const _opts = _that.defaultOptions;
-        const _scroller = _that.scroller;
         _that.isInTransition = _opts.useTransition && time;
         if (!time || _that.useTransition) { // 使用transition动画效果
-            _scroller[style.transitionDuration] = time;
-            _scroller[style.transitionTimingFunction] = easing && easing.style;
+            _that._transitionTime(time);
+            _that._transitionTimingFunction(easing && easing.style);
             _that._translate(x, y);
 
             if (time && _opts.probeType === probeType.PROBE_REALTIME) {
@@ -417,8 +438,8 @@ export default class ScrollCore extends ScrollBase {
             if (_opts.useTransform) {
                 matrix = matrix[style.transform].split(')')[0].split(',');
                 res = {
-                    x: matrix[12] || matrix[4],
-                    y: matrix[13] || matrix[5]
+                    x: +(matrix[12] || matrix[4]),
+                    y: +(matrix[13] || matrix[5])
                 };
             } else {
                 res = {
@@ -483,6 +504,8 @@ export default class ScrollCore extends ScrollBase {
             _that.scrollerStyle.left = `${x}px`;
             _that.scrollerStyle.top = `${y}px`;
         }
+        _that.x = x;
+        _that.y = y;
     }
 
     /**
@@ -503,15 +526,6 @@ export default class ScrollCore extends ScrollBase {
                 });
             }
         }
-    }
-
-    /**
-     * 设置动画时间
-     * @param {Number} time 动画时间
-     */
-    _transitionTime (time = 0) {
-        const _that = this;
-        _that.scrollerStyle[style.transitionDuration] = time;
     }
 
     /**

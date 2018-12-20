@@ -27,6 +27,9 @@ export const DEFAULT_CONFIG = {
     preventDefault: true, // 当事件派发后是否阻止浏览器默认行为
     preventDefaultException: {tagName: /^(INPUT|TEXTAREA|BUTTON|SELECT)$/},
     stopPropagation: true, // 阻止事件冒泡
+    deceleration: 0.001, // momentum 动画的减速度
+    swipeTime: 2500, // momentum 动画的动画时长
+    swipeBounceTime: 500, // momentum 动画时，超过边缘后的回弹整个动画时间
 
     bindToWrapper: false, // 是否使用包裹元素来监听事件
     disableMouse: false, // 是否监听鼠标相关事件
