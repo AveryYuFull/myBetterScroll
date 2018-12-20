@@ -19,7 +19,7 @@ export default {
     name: 'bs-list',
     data () {
         return {
-            itemData: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+            itemData: new Array(50).fill(1)
         };
     },
     mounted() {
@@ -39,9 +39,6 @@ ul {
     overflow: hidden;
     height: 350px;
     border: 1px solid rgba(0, 0, 0, 0.3);
-    .bs_wrapper-cont {
-        height: 410px;
-    }
     .bs_cont {}
     .bs_cont-item {
         padding: 5px 10px;

@@ -35,6 +35,7 @@ export default class ScrollCore extends ScrollBase {
      * @memberof ScrollCore
      */
     _start (evt) {
+        console.log('start-->', this.maxScrollY, this.minScrollY);
         const _that = this;
         const _evtType = eventType[evt.type];
         if (_evtType === MOUSE_EVENT) {
@@ -76,6 +77,7 @@ export default class ScrollCore extends ScrollBase {
         _that.distX = 0;
         _that.distY = 0;
         _that.moved = false;
+        console.log('start-->', _that.y);
 
         _that.$emit(EVENT_TYPE.beforeScrollStart, {
             x: _that.x,
@@ -115,10 +117,10 @@ export default class ScrollCore extends ScrollBase {
         let _absDistY = Math.abs(_that.distY);
         let timestamp = _opts.getNow();
 
-        // if ((timestamp - _that.endTime) > _opts.momentumLimitDistance &&
-        //     (_absDistX < _opts.momentumLimitDistance && _absDistY < _opts.momentumLimitDistance)) {
-        //     return;
-        // }
+        if ((timestamp - _that.endTime) > _opts.momentumLimitDistance &&
+            (_absDistX < _opts.momentumLimitDistance && _absDistY < _opts.momentumLimitDistance)) {
+            return;
+        }
 
         if (!_that.directionLocked && !_opts.freeScroll &&
             (!_that.hasHScroll || !_that.hasVScroll)) {
@@ -173,7 +175,6 @@ export default class ScrollCore extends ScrollBase {
                 _newX = _newX < _that.maxScrollX ? _that.maxScrollX : _that.minScrollX;
             }
         }
-
         if (_newY < _that.maxScrollY || _newY > _that.minScrollY) {
             if ((_newY < _that.maxScrollY && _bottom) || (_newY > _that.minScrollY && _top)) {
                 _newY = _that.y + deltaY / 3;
@@ -190,6 +191,7 @@ export default class ScrollCore extends ScrollBase {
             });
         }
         _that._scrollTo(_newX, _newY);
+        console.log('move-->', _that.y);
 
         if (timestamp - _that.startTime > _opts.momentumLimitTime) {
             _that.startTime = _opts.getNow();
@@ -279,6 +281,7 @@ export default class ScrollCore extends ScrollBase {
         if (_newX < _that.maxScrollX || _newX > _that.minScrollX || _newY < _that.maxScrollY || _newY > _that.minScrollY) {
             _easing = _opts.ease.swipeBounce;
         }
+        console.log('_newY', _newY, _time, _easing);
         _that._scrollTo(_newX, _newY, _time, _easing);
     }
 
@@ -373,7 +376,7 @@ export default class ScrollCore extends ScrollBase {
 
         const _opts = _that.defaultOptions;
         _that.isInTransition = _opts.useTransition && time;
-        if (!time || _that.useTransition) { // 使用transition动画效果
+        if (!time || _opts.useTransition) { // 使用transition动画效果
             _that._transitionTime(time);
             _that._transitionTimingFunction(easing && easing.style);
             _that._translate(x, y);
@@ -464,7 +467,7 @@ export default class ScrollCore extends ScrollBase {
         let _x = _that.x;
         let _y = _that.y;
 
-        if (!_that.hasVScroll || !_that.hasHScroll) {
+        if (!_that.hasVScroll && !_that.hasHScroll) {
             return false;
         }
 
@@ -534,6 +537,7 @@ export default class ScrollCore extends ScrollBase {
      * @memberof ScrollBase
      */
     _stop () {
+        debugger;
         const _that = this;
         const _opts = _that.defaultOptions;
         if (_opts.useTransition) {

@@ -35,7 +35,7 @@ export const DEFAULT_CONFIG = {
     disableMouse: false, // 是否监听鼠标相关事件
     disableTouch: false, // 是否监听 touch 相关事件
     useTransform: true, // 是否使用 CSS3 transform 做位移
-    useTransition: true, // 是否使用 CSS3 transition 动画
+    useTransition: false, // 是否使用 CSS3 transition 动画
 
     initEventListener: initEventListener, // 注册/解除事件监听器
     getEventType: getEventType, // 获取事件类型
