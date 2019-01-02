@@ -7,6 +7,7 @@ import prefixStyle from './utils/prefixStyle';
 import { ease } from './utils/ease';
 import getMomentum from './utils/getMomentum';
 import isPreventDefaultErr from './utils/isPreventDefaultErr';
+import generateDom from './utils/generateDom';
 
 export const DEFAULT_CONFIG = {
     startX: 0, // 横轴方向初始化位置
@@ -30,6 +31,10 @@ export const DEFAULT_CONFIG = {
     deceleration: 0.001, // momentum 动画的减速度
     swipeTime: 2500, // momentum 动画的动画时长
     swipeBounceTime: 500, // momentum 动画时，超过边缘后的回弹整个动画时间
+    scrollbar: { // 是否开启滚动条
+        fade: true, // 是否隐藏滚动条
+        interactive: true // 是否注册滚动条事件（mousedown，mousemove，mouseend，touchstart，touchmove，touchend）
+    },
 
     bindToWrapper: false, // 是否使用包裹元素来监听事件
     disableMouse: false, // 是否监听鼠标相关事件
@@ -45,7 +50,8 @@ export const DEFAULT_CONFIG = {
     prefixStyle: prefixStyle, // 获取兼容的样式属性
     isPreventDefaultErr: isPreventDefaultErr, // 是否可以阻止元素的默认行为
     ease: ease, // 贝塞尔曲线
-    getMomentum: getMomentum // 根据滑动的时间和距离算出动量
+    getMomentum: getMomentum, // 根据滑动的时间和距离算出动量
+    generateDom: generateDom // 创建dom元素
 };
 
 export const TOUCH_EVENT = 'touch_event';
@@ -101,4 +107,11 @@ export const probeType = {
     PROBE_DEBOUNCE: 1, // 非实时的派发scroll事件
     PROBE_NORMAL: 2, // 实时派发scroll事件
     PROBE_REALTIME: 3 // 不仅在实时派发scroll事件，同时在momentTime时也派发scroll事件
+};
+
+/**
+ * 对象类型
+ */
+export const OBJECT_TYPE = {
+    SCROLL_BAR: 'scrollbar' // 滚动条bar的对象
 };

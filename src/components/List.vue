@@ -39,6 +39,7 @@ ul {
     overflow: hidden;
     height: 350px;
     border: 1px solid rgba(0, 0, 0, 0.3);
+    position: relative;
     .bs_cont {}
     .bs_cont-item {
         padding: 5px 10px;

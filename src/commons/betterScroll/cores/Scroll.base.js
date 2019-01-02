@@ -1,6 +1,8 @@
 import DefaultOptions from '../utils/DefaultOptions';
 import { DEFAULT_CONFIG, EVENT_TYPE,
-    style } from '../constants';
+    style, OBJECT_TYPE } from '../constants';
+import ScrollBar from './ScrollBar';
+import extend from '../utils/extend';
 
 export default class ScrollBase extends DefaultOptions {
     /**
@@ -23,6 +25,16 @@ export default class ScrollBase extends DefaultOptions {
      * @memberof ScrollInit
      */
     scroller = null;
+
+    /**
+     * 对象缓存
+     */
+    cacheObj = {};
+
+    /**
+     * 滚动bar
+     */
+    scrollbar = null;
 
     constructor (el, options) {
         super(el, options);
@@ -193,6 +205,25 @@ export default class ScrollBase extends DefaultOptions {
     }
 
     /**
+     * 实例化对象
+     * @param {String} type 对象的名称
+     * @param {Object} options 可选参数
+     * @returns {Object} 返回实例化的对象
+     * @private
+     */
+    _instance (type, options) {
+        const _that = this;
+        let res = null;
+        const _type = (type || '') + '';
+        if (_that.cacheObj[_type]) {
+            res = _that.cacheObj[_type];
+        } else if (_type === OBJECT_TYPE.SCROLL_BAR) {
+            res = new ScrollBar(options);
+        }
+        return res;
+    }
+
+    /**
      * 初始化
      *
      * @param {HTMLElement} el dom元素
@@ -200,6 +231,7 @@ export default class ScrollBase extends DefaultOptions {
      */
     _init (el) {
         const _that = this;
+        const _opts = _that.defaultOptions;
         if (!_that._querySelector(el)) {
             return;
         }
@@ -208,5 +240,8 @@ export default class ScrollBase extends DefaultOptions {
         _that._handleDomEvent();
         _that._watchTransition();
         _that._refresh();
+        if (_opts.scrollbar) {
+            _that.scrollbar = _that._instance(OBJECT_TYPE.SCROLL_BAR, extend({}, _that.defaultOptions, {scroller: _that}));
+        }
     }
 }

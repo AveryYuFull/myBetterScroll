@@ -281,7 +281,6 @@ export default class ScrollCore extends ScrollBase {
         if (_newX < _that.maxScrollX || _newX > _that.minScrollX || _newY < _that.maxScrollY || _newY > _that.minScrollY) {
             _easing = _opts.ease.swipeBounce;
         }
-        console.log('_newY', _newY, _time, _easing);
         _that._scrollTo(_newX, _newY, _time, _easing);
     }
 
@@ -537,7 +536,6 @@ export default class ScrollCore extends ScrollBase {
      * @memberof ScrollBase
      */
     _stop () {
-        debugger;
         const _that = this;
         const _opts = _that.defaultOptions;
         if (_opts.useTransition) {
