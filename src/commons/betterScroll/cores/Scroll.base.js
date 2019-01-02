@@ -169,6 +169,7 @@ export default class ScrollBase extends DefaultOptions {
             _that.scrollW = _that.wrapW;
         }
 
+        console.log('tttt');
         _that.$emit(EVENT_TYPE.refresh);
     }
 
@@ -218,7 +219,7 @@ export default class ScrollBase extends DefaultOptions {
         if (_that.cacheObj[_type]) {
             res = _that.cacheObj[_type];
         } else if (_type === OBJECT_TYPE.SCROLL_BAR) {
-            res = new ScrollBar(options);
+            res = new ScrollBar(options.scroller, options);
         }
         return res;
     }
@@ -239,9 +240,9 @@ export default class ScrollBase extends DefaultOptions {
         _that.y = 0;
         _that._handleDomEvent();
         _that._watchTransition();
-        _that._refresh();
         if (_opts.scrollbar) {
-            _that.scrollbar = _that._instance(OBJECT_TYPE.SCROLL_BAR, extend({}, _that.defaultOptions, {scroller: _that}));
+            _that.scrollbar = _that._instance(OBJECT_TYPE.SCROLL_BAR, extend({}, _opts, {scroller: _that}));
         }
+        _that._refresh();
     }
 }

@@ -1,5 +1,6 @@
 import DefaultOptions from '../utils/DefaultOptions';
 import { DEFAULT_CONFIG, EVENT_TYPE } from '../constants';
+import Indicator from './Indicator';
 
 export default class ScrollBar extends DefaultOptions {
     /**
@@ -18,12 +19,17 @@ export default class ScrollBar extends DefaultOptions {
      */
     cacheBar = {};
 
-    constructor (options) {
+    /**
+     * 滚动条列表
+     */
+    indicators = [];
+
+    constructor (scroller, options) {
         super(options);
 
         const _that = this;
         _that.setDefaultOptions(options);
-        _that.scroller = options.scroller;
+        _that.scroller = scroller;
         _that._init();
     }
 
@@ -37,14 +43,17 @@ export default class ScrollBar extends DefaultOptions {
         if (_that.scroller.hasVScroll) {
             const _vScrollbar = _that._createScrollbar('vertical');
             _that._insertScroller(_vScrollbar);
+            _that.indicators.push(new Indicator(_vScrollbar, _that.scroller, _that.defaultOptions));
         }
         if (_that.scroller.hasHScroll) {
             const _hScrollbar = _that._createScrollbar('horizontal');
             _that._insertScroller(_hScrollbar);
+            _that.indicators.push(new Indicator(_hScrollbar, _that.scroller, _that.defaultOptions));
         }
 
         if (_that.scroller) {
             _that.scroller.$on(EVENT_TYPE.refresh, () => {
+                console.log('refresh');
                 _that._refresh();
             });
         }
@@ -108,12 +117,5 @@ export default class ScrollBar extends DefaultOptions {
             _scrollerbar.appendChild(_indicator);
         }
         return res;
-    }
-
-    /**
-     * 刷新scrollbar
-     */
-    _refresh () {
-        if (_that.)
     }
 }
