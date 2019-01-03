@@ -32,7 +32,7 @@ export const DEFAULT_CONFIG = {
     swipeTime: 2500, // momentum 动画的动画时长
     swipeBounceTime: 500, // momentum 动画时，超过边缘后的回弹整个动画时间
     scrollbar: { // 是否开启滚动条
-        fade: true, // 是否隐藏滚动条
+        fade: false, // 是否隐藏滚动条
         interactive: true // 是否注册滚动条事件（mousedown，mousemove，mouseend，touchstart，touchmove，touchend）
     },
 
@@ -114,4 +114,12 @@ export const probeType = {
  */
 export const OBJECT_TYPE = {
     SCROLL_BAR: 'scrollbar' // 滚动条bar的对象
+};
+
+/**
+ * 滚动条类型
+ */
+export const SCROLL_DIRECTION = {
+    HORIZONTAL: 'horizontal', // 横向滚动条
+    VERTICAL: 'vertical' // 纵向滚动条
 };

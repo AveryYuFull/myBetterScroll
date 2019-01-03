@@ -2,7 +2,6 @@ import DefaultOptions from '../utils/DefaultOptions';
 import { DEFAULT_CONFIG, EVENT_TYPE,
     style, OBJECT_TYPE } from '../constants';
 import ScrollBar from './ScrollBar';
-import extend from '../utils/extend';
 
 export default class ScrollBase extends DefaultOptions {
     /**
@@ -169,7 +168,6 @@ export default class ScrollBase extends DefaultOptions {
             _that.scrollW = _that.wrapW;
         }
 
-        console.log('tttt');
         _that.$emit(EVENT_TYPE.refresh);
     }
 
@@ -193,7 +191,6 @@ export default class ScrollBase extends DefaultOptions {
                 break;
             case 'mouseup':
             case 'touchend':
-                console.log('mouseup');
                 _that._end(evt);
                 break;
             case 'webkitTransitionEnd':
@@ -219,9 +216,20 @@ export default class ScrollBase extends DefaultOptions {
         if (_that.cacheObj[_type]) {
             res = _that.cacheObj[_type];
         } else if (_type === OBJECT_TYPE.SCROLL_BAR) {
-            res = new ScrollBar(options.scroller, options);
+            res = new ScrollBar(_that, options);
         }
         return res;
+    }
+
+    /**
+     * 初始化额外
+     */
+    _initExtraFeature () {
+        const _that = this;
+        const _opts = _that.defaultOptions;
+        if (_opts.scrollbar) { // 初始化scrollbar对象
+            _that.scrollbar = _that._instance(OBJECT_TYPE.SCROLL_BAR);
+        }
     }
 
     /**
@@ -232,17 +240,15 @@ export default class ScrollBase extends DefaultOptions {
      */
     _init (el) {
         const _that = this;
-        const _opts = _that.defaultOptions;
         if (!_that._querySelector(el)) {
             return;
         }
+
         _that.x = 0;
         _that.y = 0;
+        _that._initExtraFeature();
         _that._handleDomEvent();
         _that._watchTransition();
-        if (_opts.scrollbar) {
-            _that.scrollbar = _that._instance(OBJECT_TYPE.SCROLL_BAR, extend({}, _opts, {scroller: _that}));
-        }
         _that._refresh();
     }
 }

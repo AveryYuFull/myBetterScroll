@@ -4,6 +4,7 @@ import { DEFAULT_CONFIG, EVENT_TYPE, MOUSE_EVENT, DIRECTION, eventType, style,
     probeType } from '../constants';
 import { requestAnimationFrame, cancelAnimationFrame } from '../utils/raf';
 import getStyle from '../utils/getStyle';
+import Indicator from './Indicator';
 
 /**
  * 核心的滚动条事件逻辑的处理模块
@@ -344,6 +345,10 @@ export default class ScrollCore extends ScrollBase {
     _transitionTime (time = 0) {
         const _that = this;
         _that.scrollerStyle[style.transitionDuration] = time + 'ms';
+
+        _that._updateScrollbar((indicator) => {
+            indicator.transitionTime(time);
+        });
     }
 
     /**
@@ -354,6 +359,10 @@ export default class ScrollCore extends ScrollBase {
     _transitionTimingFunction (easing) {
         const _that = this;
         _that.scrollerStyle[style.transitionTimingFunction] = easing;
+
+        _that._updateScrollbar((indicator) => {
+            indicator.transitionTimingFunction(easing);
+        });
     }
 
     /**
@@ -508,6 +517,26 @@ export default class ScrollCore extends ScrollBase {
         }
         _that.x = x;
         _that.y = y;
+
+        _that._updateScrollbar((indicator) => {
+            indicator.updatePosition();
+        });
+    }
+
+    /**
+     * 更新scrollbar
+     * @param {Function} cb 回调方法
+     */
+    _updateScrollbar (cb) {
+        const _that = this;
+        const _scrollbar = _that.scrollbar;
+        const _indicators = _scrollbar && _scrollbar.indicators;
+        _indicators.forEach(indicator => {
+            if (indicator instanceof Indicator &&
+                cb instanceof Function) {
+                cb(indicator);
+            }
+        });
     }
 
     /**
