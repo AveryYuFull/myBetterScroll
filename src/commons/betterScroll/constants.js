@@ -1,5 +1,5 @@
 import getEventType from './utils/getEventType';
-import initEventListener from './utils/initEventListener';
+// import initEventListener from './utils/initEventListener';
 import getNow from './utils/getNow';
 import getStyle from './utils/getStyle';
 import getRect from './utils/getRect';
@@ -35,6 +35,7 @@ export const DEFAULT_CONFIG = {
         fade: false, // 是否隐藏滚动条
         interactive: true // 是否注册滚动条事件（mousedown，mousemove，mouseend，touchstart，touchmove，touchend）
     },
+    listenEvents: getEventType(), // 监听的事件类型
 
     bindToWrapper: false, // 是否使用包裹元素来监听事件
     disableMouse: false, // 是否监听鼠标相关事件
@@ -42,7 +43,6 @@ export const DEFAULT_CONFIG = {
     useTransform: true, // 是否使用 CSS3 transform 做位移
     useTransition: false, // 是否使用 CSS3 transition 动画
 
-    initEventListener: initEventListener, // 注册/解除事件监听器
     getEventType: getEventType, // 获取事件类型
     getNow: getNow, // 获取当前时间戳
     getStyle: getStyle, // 获取元素的样式（如果有prop，就获取指定的元素样式，如果没有prop，就获取全部的样式）

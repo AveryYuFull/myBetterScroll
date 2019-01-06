@@ -10,7 +10,7 @@ import supportPassive from './supportPassive';
  * @param {Boolean} [flag=true] 添加、解除事件
  * @param {boolean} [capture=true] 捕获、冒泡阶段
  */
-export default function initEventListener (el, types, fn, flag = true, capture = true) {
+export default function initEventListener (el, types, fn, flag = true, capture = false) {
     if (!el || !types || !fn) {
         return;
     }

@@ -2,6 +2,7 @@ import DefaultOptions from '../utils/DefaultOptions';
 import { DEFAULT_CONFIG, EVENT_TYPE,
     style, OBJECT_TYPE } from '../constants';
 import ScrollBar from './ScrollBar';
+import { eventUtil } from '../utils/eventUtil';
 
 export default class ScrollBase extends DefaultOptions {
     /**
@@ -55,11 +56,11 @@ export default class ScrollBase extends DefaultOptions {
 
         let _evtType = _opts.getEventType();
         if (_evtType) { // 注册mousedown/mousemove/mouseup事件
-            _initEventListener(_that.wrapper, _evtType['event_start'], this, true);
-            _initEventListener(_target, [_evtType['event_move'], _evtType['event_end']], this, true);
+            eventUtil.initEventListener(_that.wrapper, _evtType[0], this, 'add');
+            eventUtil.initEventListener(_target, _evtType.slice(1), this, 'add');
         }
 
-        _initEventListener(_that.scroller, style.transitionEnd, this);
+        eventUtil.initEventListener(_that.scroller, style.transitionEnd, this, 'add');
     }
 
     /**

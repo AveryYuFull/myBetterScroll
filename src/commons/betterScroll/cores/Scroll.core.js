@@ -5,6 +5,7 @@ import { DEFAULT_CONFIG, EVENT_TYPE, MOUSE_EVENT, DIRECTION, eventType, style,
 import { requestAnimationFrame, cancelAnimationFrame } from '../utils/raf';
 import getStyle from '../utils/getStyle';
 import Indicator from './Indicator';
+import { eventUtil } from '../utils/eventUtil';
 
 /**
  * 核心的滚动条事件逻辑的处理模块
@@ -36,7 +37,6 @@ export default class ScrollCore extends ScrollBase {
      * @memberof ScrollCore
      */
     _start (evt) {
-        console.log('start-->', this.maxScrollY, this.minScrollY);
         const _that = this;
         const _evtType = eventType[evt.type];
         if (_evtType === MOUSE_EVENT) {
@@ -53,10 +53,10 @@ export default class ScrollCore extends ScrollBase {
 
         if (_opts.preventDefault &&
             !_opts.isPreventDefaultErr(evt.target, _opts.preventDefaultException)) {
-            evt.preventDefault();
+            eventUtil.preventDefault(evt);
         }
         if (_opts.stopPropagation) {
-            evt.stopPropagation();
+            eventUtil.stopPropagation(evt);
         }
 
         _that._stop();
@@ -78,7 +78,6 @@ export default class ScrollCore extends ScrollBase {
         _that.distX = 0;
         _that.distY = 0;
         _that.moved = false;
-        console.log('start-->', _that.y);
 
         _that.$emit(EVENT_TYPE.beforeScrollStart, {
             x: _that.x,
@@ -101,10 +100,10 @@ export default class ScrollCore extends ScrollBase {
         }
 
         if (_opts.preventDefault) {
-            evt.preventDefault();
+            eventUtil.preventDefault(evt);
         }
         if (_opts.stopPropagation) {
-            evt.stopPropagation();
+            eventUtil.stopPropagation(evt);
         }
 
         let point = evt.touches ? evt.touches[0] : evt;
@@ -139,12 +138,12 @@ export default class ScrollCore extends ScrollBase {
                 _that.initiated = false;
                 return;
             } else if (_opts.eventPassthrough === 'vertical') {
-                evt.preventDefault();
+                eventUtil.preventDefault(evt);
             }
             deltaY = 0;
         } else if (_that.directionLocked === 'v') {
             if (_opts.eventPassthrough === 'horizontal') {
-                evt.preventDefault();
+                eventUtil.preventDefault(evt);
             } else if (_opts.eventPassthrough === 'vertical') {
                 _that.initiated = false;
                 return;
@@ -192,7 +191,6 @@ export default class ScrollCore extends ScrollBase {
             });
         }
         _that._scrollTo(_newX, _newY);
-        console.log('move-->', _that.y);
 
         if (timestamp - _that.startTime > _opts.momentumLimitTime) {
             _that.startTime = _opts.getNow();
@@ -228,10 +226,10 @@ export default class ScrollCore extends ScrollBase {
         });
 
         if (_opts.preventDefault && !_opts.isPreventDefaultErr(evt.target, _opts.preventDefaultException)) {
-            evt.preventDefault();
+            eventUtil.preventDefault(evt);
         }
         if (_opts.stopPropagation) {
-            evt.stopPropagation();
+            eventUtil.stopPropagation(evt);
         }
 
         let _newX = Math.round(_that.x);

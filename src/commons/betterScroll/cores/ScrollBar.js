@@ -33,16 +33,7 @@ export default class ScrollBar extends DefaultOptions {
             _createIndicator(SCROLL_DIRECTION.HORIZONTAL);
         }
 
-        /**
-         * 注册监听refresh回调事件
-         */
-        _that.scroller.$on(EVENT_TYPE.refresh, () => {
-            _that.indicators.forEach(indicator => {
-                if (indicator instanceof Indicator) {
-                    indicator.refresh();
-                }
-            });
-        });
+        _that._initSelfEvtListener();
 
         /**
          * 创建scrollbar
@@ -65,6 +56,59 @@ export default class ScrollBar extends DefaultOptions {
             const _wrapper = _that.scroller && _that.scroller.wrapper;
             if (_wrapper) {
                 _wrapper.appendChild(scrollbar);
+            }
+        }
+    }
+
+    /**
+     * 监听自定义事件监听器
+     */
+    _initSelfEvtListener () {
+        const _that = this;
+        const _opts = _that.defaultOptions;
+        if (_that.scroller) {
+            /**
+             * 注册监听refresh回调事件
+             */
+            _that.scroller.$on(EVENT_TYPE.refresh, () => {
+                _eachIndicator(_that.indicators, (indicator) => {
+                    indicator.refresh();
+                });
+            });
+
+            const _scrollbar = _opts && _opts.scrollbar;
+            if ((typeof _scrollbar === 'boolean' && _scrollbar) ||
+                (_scrollbar && _scrollbar.fade)) { // 监听滚动条显示/隐藏事件
+                let _evtTypes = {
+                    [EVENT_TYPE.scrollStart]: [false],
+                    [EVENT_TYPE.scrollStart]: [true],
+                    [EVENT_TYPE.scrollEnd]: [false]
+                };
+                for (let key in _evtTypes) {
+                    if (_evtTypes.hasOwnProperty(key)) {
+                        _that.scroller.$on(key, () => {
+                            _eachIndicator(_that.indicators, (indicator) => {
+                                indicator.handleFade.apply(indicator, _evtTypes[key]);
+                            });
+                        });
+                    }
+                }
+            }
+        }
+
+        /**
+         * 遍历滚动条bar
+         * @param {Array} indicators 滚动条bar
+         * @param {Function} cb 回调方法
+         */
+        function _eachIndicator (indicators, cb) {
+            if (indicators && indicators.length > 0) {
+                indicators.forEach((indicator) => {
+                    if (cb instanceof Function &&
+                        indicator instanceof Indicator) {
+                        cb(indicator);
+                    }
+                });
             }
         }
     }
