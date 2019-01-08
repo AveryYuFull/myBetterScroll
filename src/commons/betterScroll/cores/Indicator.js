@@ -24,6 +24,14 @@ const translateConfig = {
     }
 };
 
+/**
+ * 样式配置
+ */
+const styleConfig = {
+    [SCROLL_DIRECTION.VERTICAL]: 'height',
+    [SCROLL_DIRECTION.HORIZONTAL]: 'width'
+};
+
 export default class Indicator extends DefaultOptions {
     defaultOptions = DEFAULT_CONFIG;
 
@@ -32,6 +40,7 @@ export default class Indicator extends DefaultOptions {
         const _that = this;
         _that.scroller = scroller;
         _that.setDefaultOptions(options);
+
         _that._init();
     }
 
@@ -48,6 +57,7 @@ export default class Indicator extends DefaultOptions {
             _that.indicator = _el && _el.children[0];
             _that.direction = _opts.direction;
             _that.interactive = _scrollbar && _scrollbar.interactive;
+            _that.pos = 0;
             _that.fade = typeof _scrollbar === 'boolean' ? _scrollbar : _scrollbar && _scrollbar.fade;
             if (_that.fade) {
                 _that.visible = false;
@@ -58,7 +68,9 @@ export default class Indicator extends DefaultOptions {
             }
         }
 
-        _that._initEvtListener();
+        if (_that.interactive) {
+            _that._initEvtListener();
+        }
     }
 
     /**
@@ -100,6 +112,41 @@ export default class Indicator extends DefaultOptions {
     }
 
     /**
+     * 阻止事件默认行为／阻止事件冒泡
+     * @param {Event} event 事件对象
+     */
+    _preventEvent (event) {
+        const _that = this;
+        const _opts = _that.defaultOptions;
+        if (_opts.preventDefault &&
+            !_opts.isPreventDefaultErr(_opts.preventDefaultException)) {
+            eventUtil.preventDefault(event);
+        }
+        if (_opts.stopPropagation) {
+            eventUtil.stopPropagation(event);
+        }
+    }
+
+    /**
+     * 获取光标位置
+     * @param {Event} event 事件对象
+     * @returns {Number} 返回当前光标位置
+     */
+    _getPagePos (event) {
+        let res = 0;
+        if (event) {
+            const _that = this;
+            const _point = event.touches ? event.touches[0] : event;
+            if (_that.direction === SCROLL_DIRECTION.VERTICAL) {
+                res = _point.pageY;
+            } else {
+                res = _point.pageX;
+            }
+        }
+        return res;
+    }
+
+    /**
      * 开始
      * @param {Event} event 事件对象
      * @memberof Indicator
@@ -120,13 +167,8 @@ export default class Indicator extends DefaultOptions {
                 return;
             }
             _that.initiated = _evtType;
-
-            eventUtil.preventDefault(event);
-            eventUtil.stopPropagation(event);
-
-            const _point = event.touches ? event.touches[0] : event;
-            _that.pointX = _point.pageX;
-            _that.pointY = _point.pageY;
+            _that._preventEvent();
+            _that.pagePos = _that._getPagePos(event);
             _that.moved = false;
 
             _that.scroller.$emit(EVENT_TYPE.beforeScrollStart, {
@@ -142,59 +184,63 @@ export default class Indicator extends DefaultOptions {
      * @memberof Indicator
      */
     _move (event) {
-        if (event) {
-            const _that = this;
-            const _opts = _that.defaultOptions;
-            if (!_opts.enabled || !_that.initiated) {
-                return;
-            }
-            eventUtil.preventDefault(event);
-            eventUtil.stopPropagation(event);
-
-            const _point = event.touches ? event.touches[0] : event;
-            let _deltaX = _point.pageX - _that.pageX;
-            let _deltaY = _point.pageY - _that.pageY;
-            _that.pageX = _point.pageX;
-            _that.pageY = _point.pageY;
-
-            if (!_that.moved) {
-                _that.scroller.$emit(EVENT_TYPE.scrollStart, {
-                    x: _that.scroller.x,
-                    y: _that.scroller.y
-                });
-                _that.moved = true;
-            }
-
-            _that._pos(_deltaX, _deltaY);
+        if (!event) {
+            return;
         }
+
+        const _that = this;
+        const _opts = _that.defaultOptions;
+        if (!_opts.enabled || !_that.initiated) {
+            return;
+        }
+        _that._preventEvent();
+
+        const _newPagePos = _that._getPagePos(event);
+        const _delta = _newPagePos - _that.pagePos;
+        _that.pagePos = _newPagePos;
+
+        if (!_that.moved) {
+            _that.scroller.$emit(EVENT_TYPE.scrollStart, {
+                x: _that.scroller.x,
+                y: _that.scroller.y
+            });
+            _that.moved = true;
+        }
+
+        _that._pos(_delta + _that.pos);
     }
 
     /**
      * 滑动滚动条
-     * @param {Number} x 横向滑动距离
-     * @param {Number} y 纵向滑动距离
+     * @param {Number} pos 滑动距离
      * @memberof Indicator
      */
-    _pos (x, y) {
+    _pos (pos) {
         const _that = this;
-        x = _pos(x, _that.maxPosX, _that.sizeRatioX);
-        y = _pos(y, _that.maxPosY, _that.sizeRatioY);
+        let x = 0;
+        let y = 0;
+        pos = _pos(pos);
+        if (_that.direction === SCROLL_DIRECTION.VERTICAL) {
+            y = pos;
+        } else {
+            x = pos;
+        }
         _that.scroller._scrollTo(x, y);
 
         /**
          * 滑动滚动条
          * @param {Number} pos 滑动距离
-         * @param {Number} maxPos 最大滑动距离
-         * @param {Number} ratio 比率
-         * @returns
+         * @returns {Number} 返回新的位置
          */
-        function _pos (pos, maxPos, ratio) {
+        function _pos (pos) {
+            const _maxPos = _that.maxPos;
+            const _ratio = _that.sizeRatio;
             if (pos < 0) {
                 pos = 0;
-            } else if (pos > maxPos) {
-                pos = maxPos;
+            } else if (pos > _maxPos) {
+                pos = _maxPos;
             }
-            pos = pos / ratio;
+            pos = pos / _ratio;
             return pos;
         }
     }
@@ -212,9 +258,7 @@ export default class Indicator extends DefaultOptions {
                 return;
             }
             _that.initiated = false;
-
-            eventUtil.preventDefault(event);
-            eventUtil.stopPropagation(event);
+            _that._preventEvent();
         }
     }
 
@@ -241,17 +285,17 @@ export default class Indicator extends DefaultOptions {
         if (_direction === SCROLL_DIRECTION.VERTICAL) {
             const _wrapH = _that.el.clientHeight;
             const _scrollH = _scroller.scrollH;
-            _that.indicatorH = Math.max(INDICATOR_MIN_LEN, Math.round((_wrapH * _wrapH) / (_scrollH || _wrapH || 1)));
-            _that._setStyle('height', `${_that.indicatorH}px`);
-            _that.maxPosY = _wrapH - _that.indicatorH;
-            _that.sizeRatioY = _that.maxPosY / _scroller.maxScrollY;
+            _that.indicatorSize = Math.max(INDICATOR_MIN_LEN, Math.round((_wrapH * _wrapH) / (_scrollH || _wrapH || 1)));
+            _that._setStyle('height', `${_that.indicatorSize}px`);
+            _that.maxPos = _wrapH - _that.indicatorSize;
+            _that.sizeRatio = _that.maxPos / _scroller.maxScrollY;
         } else {
             const _wrapW = _that.el.clientWidth;
             const _scrollW = _scroller.scrollW;
-            _that.indicatorW = Math.max(INDICATOR_MIN_LEN, Math.round((_wrapW * _wrapW) / (_scrollW || _wrapW || 1)));
-            _that._setStyle('width', `${_that.indicatorW}px`);
-            _that.maxPosX = _wrapW - _that.indicatorW;
-            _that.sizeRatioX = _that.maxPosX / _scroller.maxScrollX;
+            _that.indicatorSize = Math.max(INDICATOR_MIN_LEN, Math.round((_wrapW * _wrapW) / (_scrollW || _wrapW || 1)));
+            _that._setStyle('width', `${_that.indicatorSize}px`);
+            _that.maxPos = _wrapW - _that.indicatorSize;
+            _that.sizeRatio = _that.maxPos / _scroller.maxScrollX;
         }
     }
 
@@ -275,19 +319,13 @@ export default class Indicator extends DefaultOptions {
         const _direction = _that.direction;
         const _scroller = _that.scroller;
         let _newPos = null;
-        let _len = null;
-        let _maxPos = null;
 
         if (_direction === SCROLL_DIRECTION.VERTICAL) {
-            _newPos = _scroller.y * _that.sizeRatioY;
-            _len = _that.indicatorH;
-            _maxPos = _that.maxPosY;
+            _newPos = _scroller.y * _that.sizeRatio;
         } else {
-            _newPos = _scroller.x * _that.sizeRatioX;
-            _len = _that.indicatorW;
-            _maxPos = _that.maxPosX;
+            _newPos = _scroller.x * _that.sizeRatio;
         }
-        _updatePosition(_newPos, _len, _maxPos, _direction);
+        _updatePosition(_newPos, _that.indicatorSize, _that.maxPos, _direction);
 
         /**
          * 更行滚动条的位置
@@ -308,13 +346,8 @@ export default class Indicator extends DefaultOptions {
                 pos = maxPos + _tmpLen - len;
                 _time = 500;
             }
-            if (direction === SCROLL_DIRECTION.VERTICAL) {
-                _that._setStyle('height', `${len}px`);
-                _that.y = pos;
-            } else {
-                _that._setStyle('width', `${len}px`);
-                _that.x = pos;
-            }
+            _that.pos = pos;
+            _that._setStyle(styleConfig[direction], `${len}px`);
             _that._translate(pos, _time);
         }
     }
