@@ -1,255 +1,208 @@
 import DefaultOptions from '../utils/DefaultOptions';
-import { DEFAULT_CONFIG, EVENT_TYPE,
-    style, OBJECT_TYPE } from '../constants';
-import ScrollBar from './ScrollBar';
-import { eventUtil } from '../utils/eventUtil';
+import { DEFAULT_CONFIG, style } from '../constants';
+import getElements from '../utils/getElements';
+import hasStyle from '../utils/hasStyle';
+import eventUtil from '../utils/eventUtil';
+import getEvents from '../utils/getEvents';
 
 export default class ScrollBase extends DefaultOptions {
-    /**
-     * 默认配置参数
-     *
-     * @memberof ScrollInit
-     */
     defaultOptions = DEFAULT_CONFIG;
 
-    /**
-     * 包裹元素
-     *
-     * @memberof ScrollInit
-     */
-    wrapper = null;
-
-    /**
-     * 滚动元素
-     *
-     * @memberof ScrollInit
-     */
-    scroller = null;
-
-    /**
-     * 对象缓存
-     */
-    cacheObj = {};
-
-    /**
-     * 滚动bar
-     */
-    scrollbar = null;
-
     constructor (el, options) {
-        super(el, options);
-
+        super(options);
         const _that = this;
-        _that.setDefaultOptions(options);
-
-        _that._init(el);
+        _that._init(el, options);
     }
 
     /**
-     * 注册事件
+     * 获取元素
+     * @param {HTMLElement|String} el dom元素标识
+     * @return {Boolean} 获取元素成功／失败
      */
-    _handleDomEvent () {
+    _getElements (el) {
         const _that = this;
-        const _opts = _that.defaultOptions;
-        const _target = ((_opts && _opts.bindToWrapper) && _that.wrapper) || window;
-        const _initEventListener = _opts.initEventListener;
-
-        let _evtType = _opts.getEventType();
-        if (_evtType) { // 注册mousedown/mousemove/mouseup事件
-            eventUtil.initEventListener(_that.wrapper, _evtType[0], this, 'add');
-            eventUtil.initEventListener(_target, _evtType.slice(1), this, 'add');
-        }
-
-        eventUtil.initEventListener(_that.scroller, style.transitionEnd, this, 'add');
-    }
-
-    /**
-     * 获取元素dom节点
-     *
-     * @param {String|HTMLElement} el 元素选择器/dom节点对象
-     * @returns {Boolean} 获取元素是否成功
-     * @memberof ScrollBase
-     */
-    _querySelector (el) {
-        if (!el) {
-            console.error('element is required');
-            return false;
-        }
-        const _that = this;
-        let _wrapper = el;
-        let _scroller = null;
-        if (typeof el === 'string') {
-            _wrapper = document.querySelector(el);
-        }
-        _scroller = _wrapper && _wrapper.children[0];
-        if (!_scroller) {
-            console.error('scroll element is required');
+        _that.wrapper = getElements(el)[0];
+        if (!_that.wrapper) {
+            console.error('需要传入包裹元素');
             return false;
         }
 
-        _that.wrapper = _wrapper;
-        _that.scroller = _scroller;
-        _that.scrollerStyle = _that.scroller.style;
+        _that.scroller = _that.wrapper && _that.wrapper.children[0];
+        if (!_that.scroller) {
+            console.error('需要纯乳滚动元素');
+            return false;
+        }
+
         return true;
     }
 
     /**
-     * 管理动画状态
-     * @private
+     * 处理options
+     * @param {Object} options options参数
+     */
+    _handleOptions (options) {
+        const _that = this;
+        // 是否开启硬件加速
+        options.HWCompositing = options.HWCompositing && hasStyle('perspective');
+        // 是否使用transform移动位置
+        options.useTransform = options.useTransform && hasStyle('transform');
+        // 是否使用transition动画
+        options.useTransition = options.useTransition && hasStyle('transition');
+        options.scrollX = options.scrollX && options.eventPassthrough !== 'horizontal';
+        options.scrollY = options.scrollY && options.eventPassthrough !== 'vertical';
+        options.freeScroll = options.freeScroll && !options.eventPassthrough;
+        options.directionLockThreshold = options.eventPassthrough ? 0 : options.directionLockThreshold;
+        _that.setDefaultOptions(options);
+    }
+
+    /**
+     * 设置动画监听变量
      */
     _watchTransition () {
-        if (typeof Object.defineProperty === 'undefined') {
+        const _that = this;
+        if (!(Object.defineProperty instanceof Function)) {
             return;
         }
-        const _that = this;
+
         let _isInTransition = false;
         const _opts = _that.defaultOptions;
-        const _key = _opts.useTransition ? 'isInTransition' : 'isAnimating';
+        const _key = _opts && _opts.useTransition ? 'isInTransition' : 'isAnimating';
         Object.defineProperty(_that, _key, {
             get () {
                 return _isInTransition;
             },
-            set (val) {
-                _isInTransition = val;
+            set (newVal) {
+                _isInTransition = newVal;
+                const _elems = _that.scroller.children ? _that.scroller.children : [_that.scroller];
+                /**
+                 * 当设置元素pointerEvents为none时，元素将永远不会成为鼠标事件的target
+                 * 所以当滚动条在滚动中，滚动中的元素不应该成为鼠标事件的target
+                 */
+                const _pointerEvents = _isInTransition ? 'none' : 'auto';
+                if (_elems && _elems instanceof Array) {
+                    for (let i = 0; i < _elems.length; i++) {
+                        const _el = _elems[i];
+                        _el.style.pointerEvents = _pointerEvents;
+                    }
+                }
             }
         });
     }
 
     /**
-     * 页面重新刷新数据
-     *
-     * @memberof ScrollBase
+     * 注册事件监听器
      */
-    _refresh () {
+    _initEventListener () {
         const _that = this;
         const _opts = _that.defaultOptions;
-        const _wrapper = _that.wrapper;
-        const _scroller = _that.scroller;
+        const _pointerEvents = getEvents();
+        const _target = _opts.bindToWrapper ? _that.scroller : window;
 
-        let _style = _opts.getStyle(_wrapper, 'position');
-        let _isWrapperStatic = _style ? _style === 'static' : true;
-
-        let _wrapRect = _opts.getRect(_wrapper);
-        _that.wrapW =_wrapRect.width;
-        _that.wrapH = _wrapRect.height;
-
-        let _scrollRect = _opts.getRect(_scroller);
-        _that.scrollW = _scrollRect.width;
-        _that.scrollH = _scrollRect.height;
-
-        // 获取reletiveX、reletiveY
-        let _reletiveX = _scrollRect.left;
-        let _reletiveY = _scrollRect.top;
-        if (_isWrapperStatic) {
-            _reletiveX -= _wrapRect.left;
-            _reletiveY -= _wrapRect.top;
-        }
-
-        _that.maxScrollX = _that.wrapW - _that.scrollW;
-        _that.maxScrollY = _that.wrapH - _that.scrollH;
-        _that.minScrollX = 0;
-        _that.minScrollY = 0;
-        if (_that.maxScrollX < 0) {
-            _that.maxScrollX -= _reletiveX;
-            _that.minScrollX = -_reletiveX;
-        }
-        if (_that.maxScrollY < 0) {
-            _that.maxScrollY -= _reletiveY;
-            _that.minScrollY = -_reletiveY;
-        }
-
-        let _hasVScroll = _that.hasVScroll = _opts.scrollY && (_that.maxScrollY < _that.minScrollY);
-        let _hasHScroll = _that.hasHScroll = _opts.scrollX && (_that.maxScrollX < _that.minScrollX);
-        if (!_hasVScroll) {
-            _that.maxScrollY = _that.minScrollY;
-            _that.scrollH = _that.wrapH;
-        }
-        if (!_hasHScroll) {
-            _that.maxScrollX = _that.minScrollX;
-            _that.scrollW = _that.wrapW;
-        }
-
-        _that.$emit(EVENT_TYPE.refresh);
-    }
+        let _args = [
+            [window, ['orientationchange', 'resize'], _that._handleEvent.bind(_that), true],
+            [_that.scroller, _pointerEvents[0], _that._handleEvent.bind(_that), true],
+            [_target, _pointerEvents.slice(0), _that._handleEvent.bind(_that), true],
+            [_that.scroller, style.transitionEnd, _that._handleEvent.bind(_that), true]
+        ];
+        _args.forEach(item => {
+            if (item) {
+                eventUtil.initEventListener.apply(null, item);
+            }
+        });
+    };
 
     /**
-     * 事件回调方法
-     *
-     * @param {Event} evt 事件对象
-     * @memberof ScrollBase
+     * 事件处理程序
+     * @param {Event} event 事件对象
      */
-    handleEvent (evt) {
-        const _that = this;
-        const _type = evt && evt.type;
+    _handleEvent (event) {
+        if (!event) {
+            return;
+        }
+        const _type = (event.type || '') + '';
         switch (_type) {
+            case 'orientationchange':
+            case 'resize':
+                _that._resize();
+                break;
             case 'mousedown':
             case 'touchstart':
-                _that._start(evt);
+                _that._start();
                 break;
             case 'mousemove':
             case 'touchmove':
-                _that._move(evt);
+                _that._move();
                 break;
             case 'mouseup':
-            case 'touchend':
-                _that._end(evt);
+            case 'mousecancel':
+            case 'touchup':
+            case 'touchcancel':
+                _that._end();
                 break;
-            case 'webkitTransitionEnd':
-            case 'oTransitionEnd':
-            case 'MSTransitionEnd':
             case 'transitionend':
-                _that._transitionEnd(evt);
-                break;
+                _that._transitionEnd();
         }
     }
 
     /**
-     * 实例化对象
-     * @param {String} type 对象的名称
+     * 实例化dom节点变化观察器对象
+     * @returns {MutationObserver} 节点观察期对象
+     */
+    _instanceObserver () {
+        let _observer = null;
+
+        if (typeof window.MutationObserver !== 'undefined') {
+            let _immediateRefresh = false;
+            let _defferRefresh = false;
+            _observer = new MutationObserver((mutations) => {
+                if (!mutations) {
+                    return;
+                }
+                for (let i = 0; i < mutations.length; i++) {
+                    const _mutaion = mutations[i];
+                    const _type = _mutaion && _mutaion.type;
+                    const _target = _mutaion && _mutaion.target;
+                    if (_type !== 'attributes') {
+                        _immediateRefresh = true;
+                        break;
+                    } else if (_target !== _that.scroller) {
+                        _defferRefresh = true;
+                        break;
+                    }
+                }
+            });
+            _observer.observe();
+        }
+
+        _that._instanceObserver = function () {
+            return _observer;
+        };
+        return _observer;
+    }
+
+    /**
+     * 初始化dom节点变化观察器
+     */
+    _initDomObserver () {
+        const _that = this;
+        if (typeof window.MutationObserver !== 'undefined') {
+            const _observer = _that._instanceObserver((mu));
+        } else {
+            _that._checkDomUpdate();
+        }
+    }
+
+    /**
+     * 初始化数据
+     * @param {HTMLElement|String} el dom元素
      * @param {Object} options 可选参数
-     * @returns {Object} 返回实例化的对象
-     * @private
      */
-    _instance (type, options) {
+    _init (el, options) {
         const _that = this;
-        let res = null;
-        const _type = (type || '') + '';
-        if (_that.cacheObj[_type]) {
-            res = _that.cacheObj[_type];
-        } else if (_type === OBJECT_TYPE.SCROLL_BAR) {
-            res = new ScrollBar(_that, options);
-        }
-        return res;
-    }
-
-    /**
-     * 初始化额外
-     */
-    _initExtraFeature () {
-        const _that = this;
-        const _opts = _that.defaultOptions;
-        if (_opts.scrollbar) { // 初始化scrollbar对象
-            _that.scrollbar = _that._instance(OBJECT_TYPE.SCROLL_BAR);
-        }
-    }
-
-    /**
-     * 初始化
-     *
-     * @param {HTMLElement} el dom元素
-     * @memberof ScrollInit
-     */
-    _init (el) {
-        const _that = this;
-        if (!_that._querySelector(el)) {
+        if (!_that._getElements(el)) {
             return;
         }
-
-        _that.x = 0;
-        _that.y = 0;
-        _that._initExtraFeature();
-        _that._handleDomEvent();
-        _that._watchTransition();
-        _that._refresh();
+        _that._handleOptions(options);
+        _that._initEventListener();
     }
 }

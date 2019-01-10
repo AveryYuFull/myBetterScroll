@@ -1,35 +1,50 @@
+// 是否支持passive属性
+const _supportPassive = (function () {
+    var supportsPassiveOption = false;
+    try {
+        var opts = Object.defineProperty({}, 'passive', {
+            get: function() {
+                supportsPassiveOption = true;
+            }
+        });
+        window.addEventListener('test', null, opts);
+    } catch (e) {};
+    return supportsPassiveOption;
+})();
+
 /**
- * 添加/删除事件处理程序
- * @param {HTMLElement} el 事件currentTarget元素
- * @param {Array|String} types 事件类型
- * @param {Function} handler 事件处理程序
- * @param {string} [flag='add'] 添加或删除事件处理程序
- * @param {Object|Boolean} capture 捕获/冒泡监听事件
+ * 添加／解除事件监听器
+ * @param {HTMLElement} el 事件监听元素
+ * @param {String|Array} types 事件类型
+ * @param {Function} fn 事件处理程序
+ * @param {Boolean} flag 添加／解除事件监听
+ * @param {Boolean|Object} capture 在捕获／冒泡阶段处理事件
+ * @returns {Boolean} 是否成功
  */
-function initEventListener (el, types, handler, flag = 'add', capture) {
-    if (!el || !types || !handler) {
-        return;
+function _initEventListener (el, types, fn, flag, capture = true) {
+    if (!el || !types || !fn) {
+        return false;
     }
 
-    flag = flag !== 'remove' ? 'add' : 'remove';
-    if (!(capture instanceof Object) &&
-        supportPassive.isSupportPassive()) {
+    if (typeof capture === 'boolean') {
         capture = {
             capture: capture,
-            passive: true
+            passive: _supportPassive
         };
     }
-    if (!Array.isArray(types)) {
+    flag = !flag ? 'remove' : 'add';
+
+    if (!(types instanceof Array)) {
         types = [types];
     }
     types.forEach(type => {
-        if (type) {
-            _initEvent(type);
-        }
+        _initEvent(type);
     });
 
+    return true;
+
     /**
-     * 添加/删除事件处理程序
+     * 添加／解除事件监听器
      * @param {String} type 事件类型
      */
     function _initEvent (type) {
@@ -48,99 +63,74 @@ function initEventListener (el, types, handler, flag = 'add', capture) {
     }
 }
 
-/**
- * 添加事件处理程序
- * @param {HTMLElement} el 事件currentTarget对象
- * @param {String} type 事件类型
- * @param {Function} handler 事件处理程序
- * @param {Object|Boolean} capture 捕获/冒泡阶段注册事件
- */
-function addHandler (el, type, handler, capture) {
-    if (!el || !handler || !type) {
-        return;
-    }
-
-    if (el.addEventListener instanceof Function) {
-        el.addEventListener(type, handler, capture);
-    } else if (el.attachEvent instanceof Function) {
-        el.attachEvent('on' + type, handler);
-    } else {
-        el['on' + type] = handler;
-    }
-}
-
-/**
- * 取消事件处理程序
- * @param {HTMLElement} el 事件currentTarget对象
- * @param {String} type 事件类型
- * @param {Function} handler 事件处理程序
- * @param {Object|Boolean} capture 捕获/冒泡阶段注册事件
- */
-function removeHandler (el, type, handler, capture) {
-    if (!el || !handler || !type) {
-        return;
-    }
-
-    if (el.removeEventListener instanceof Function) {
-        el.removeEventListener(type, handler, capture);
-    } else if (el.detachEvent instanceof Function) {
-        el.detachEvent('on' + type, handler);
-    } else {
-        el['on' + type] = null;
-    }
-}
-
-const supportPassive = {
+const eventUtil = {
+    initEventListener: _initEventListener,
     /**
-     * 判断浏览器是否支持passive事件
-     * @returns {Boolean} 浏览器是否支持注册passive事件
+     * 添加事件监听器
+     * @param {HTMLElement} el 事件元素
+     * @param {String} type 事件类型
+     * @param {Function} fn 事件处理程序
+     * @param {Object|Boolean} capture 在捕获／冒泡阶段处理事件
+     * @returns {Boolean} 是否成功
      */
-    isSupportPassive () {
-        let supportsPassiveOption = false;
-        try {
-            const opts = Object.defineProperty({}, 'passive', {
-                get: function() {
-                    supportsPassiveOption = true;
-                }
-            });
-            window.addEventListener('test', null, opts);
-        } catch (e) {};
-        supportPassive.isSupportPassive = () => {
-            return supportsPassiveOption;
-        };
+    addHandler (el, type, fn, capture) {
+        if (!el || !type || !fn) {
+            return false;
+        }
 
-        return supportsPassiveOption;
-    }
-};
+        if (el.addEventListener instanceof Function) {
+            el.addEventListener(type, fn, capture);
+        } else if (el.attachEvent instanceof Function) {
+            el.attachEvent('on' + type, fn);
+        } else {
+            el['on' + type] = fn;
+        }
+        return true;
+    },
+    /**
+     * 解除事件监听器
+     * @param {HTMLElement} el 事件元素
+     * @param {String} type 事件类型
+     * @param {Function} fn 事件处理程序
+     * @param {Object|Boolean} capture 在捕获／冒泡阶段处理事件
+     * @returns {Boolean} 是否成功
+     */
+    removeHandler (el, type, fn, capture) {
+        if (!el || !type || !fn) {
+            return false;
+        }
 
-/**
- * event事件util对象
- */
-export const eventUtil = {
-    // 添加/删除事件处理程序
-    initEventListener,
+        if (el.removeEventListener instanceof Function) {
+            el.removeEventListener(el, type, fn, capture);
+        } else if (el.detachEvent instanceof Function) {
+            el.detachEvent('on' + type, fn);
+        } else {
+            el['on' + type] = null;
+        }
+    },
     /**
      * 获取事件对象
      * @param {Event} event 事件对象
-     * @returns {Event} 事件对象
+     * @returns {Event} 返回事件对象
      */
     getEvent (event) {
         return event || window.event;
     },
     /**
-     * 获取事件目标对象
+     * 阻止事件的浏览器默认行为
      * @param {Event} event 事件对象
-     * @returns {Object} 事件目标对象
      */
-    getTarget (event) {
-        let res = null;
+    preventDefault (event) {
         if (event) {
-            res = event.target || event.srcElement;
+            if (event.preventDefault instanceof Function) {
+                event.preventDefault();
+            } else {
+                event.returnValue = false;
+            }
         }
-        return res;
     },
     /**
-     * 阻止事件冒泡/捕获
+     * 阻止事件冒泡
      * @param {Event} event 事件对象
      */
     stopPropagation (event) {
@@ -149,19 +139,6 @@ export const eventUtil = {
                 event.stopPropagation();
             } else {
                 event.cancelBubble = true;
-            }
-        }
-    },
-    /**
-     * 阻止事件默认行为
-     * @param {Event} event 事件对象
-     */
-    preventDefault (event) {
-        if (event && !supportPassive.isSupportPassive()) {
-            if (event.preventDefault instanceof Function) {
-                event.preventDefault();
-            } else {
-                event.returnValue = false;
             }
         }
     },
@@ -198,3 +175,5 @@ export const eventUtil = {
         return res;
     }
 };
+
+export default eventUtil;
