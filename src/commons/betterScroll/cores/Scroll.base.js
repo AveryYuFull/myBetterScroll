@@ -150,14 +150,14 @@ export default class ScrollBase extends DefaultOptions {
      */
     _instanceObserver () {
         let _observer = null;
-
         if (typeof window.MutationObserver !== 'undefined') {
-            let _immediateRefresh = false;
-            let _defferRefresh = false;
+            let _timer = null;
             _observer = new MutationObserver((mutations) => {
                 if (!mutations) {
                     return;
                 }
+                let _immediateRefresh = false;
+                let _defferRefresh = false;
                 for (let i = 0; i < mutations.length; i++) {
                     const _mutaion = mutations[i];
                     const _type = _mutaion && _mutaion.type;
@@ -170,8 +170,15 @@ export default class ScrollBase extends DefaultOptions {
                         break;
                     }
                 }
+                if (_immediateRefresh) {
+                    _that._refresh();
+                } else if (_defferRefresh) {
+                    clearTimeout(_timer);
+                    _timer = setTimeout(() => {
+                        _that._refresh();
+                    }, 60);
+                }
             });
-            _observer.observe();
         }
 
         _that._instanceObserver = function () {
@@ -181,12 +188,22 @@ export default class ScrollBase extends DefaultOptions {
     }
 
     /**
+     * 检查dom元素是否发生改变
+     */
+    _checkDomUpdate () {
+        const _that = this;
+        const _opts = _that.defaultOptions;
+    }
+
+    /**
      * 初始化dom节点变化观察器
      */
     _initDomObserver () {
         const _that = this;
+        const _opts = _that.defaultOptions;
         if (typeof window.MutationObserver !== 'undefined') {
-            const _observer = _that._instanceObserver((mu));
+            const _observer = _that.observer = _that._instanceObserver();
+            _observer.observe(_that.scroller, _opts.muObserverOptions);
         } else {
             _that._checkDomUpdate();
         }

@@ -12,8 +12,13 @@ export const DEFAULT_CONFIG = {
     scrollY: true, // 是否开启纵向滚动条
     freeScroll: false, // 是否开启横向和纵向滚动条
     directionLockThreshold: 5, // 通过横向滑动距离和纵向滑动距离的绝对值来决定是横向滚动／纵向滚动
-    bindToWrapper: false // 是否使用wrapper监听事件
+    bindToWrapper: false, // 是否使用wrapper监听事件
     // listenerEvents: null // 监听的事件
+    muObserverOptions: { // MutationObserver配置可选参数
+        attributes: true,
+        childList: true,
+        subtree: true
+    }
 };
 
 /**
