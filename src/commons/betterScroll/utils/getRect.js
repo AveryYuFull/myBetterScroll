@@ -4,10 +4,15 @@
  * @returns {Object} 返回rect对象
  */
 export default function getRect (el) {
+    let _res = {
+        top: 0,
+        left: 0,
+        width: 0,
+        height: 0
+    };
     if (!el) {
-        return null;
+        return _res;
     }
-    let _res = null;
     if (el instanceof window.SVGElement) { // 由于svg元素是没有offset属性，所以通过offset来获取元素的相对位置和大小
         const _rect = el.getBoundingClientRect();
         if (_rect) {

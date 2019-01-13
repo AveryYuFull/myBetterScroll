@@ -51,14 +51,14 @@ function _initEventListener (el, types, fn, flag, capture = true) {
         let _fn = null;
         switch ((flag || '') + '') {
             case 'add':
-                _fn = addHandler;
+                _fn = eventUtil.addHandler;
                 break;
             case 'remove':
-                _fn = removeHandler;
+                _fn = eventUtil.removeHandler;
                 break;
         }
         if (_fn instanceof Function) {
-            _fn(el, type, handler, capture);
+            _fn(el, type, fn, capture);
         }
     }
 }
@@ -115,6 +115,18 @@ const eventUtil = {
      */
     getEvent (event) {
         return event || window.event;
+    },
+    /**
+     * 获取事件的target对象
+     * @param {Event} event 事件对象
+     * @returns {Event} 返回target对象
+     */
+    getTarget (event) {
+        let res = null;
+        if (event) {
+            res = event.target || event.srcElement;
+        }
+        return res;
     },
     /**
      * 阻止事件的浏览器默认行为

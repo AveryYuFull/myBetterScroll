@@ -5,7 +5,7 @@ import prefixStyle from './prefixStyle';
  * @param {String} prop 判断是否有对应的属性
  * @returns {Boolean} 是否有对应的属性，如果有，就返回true，否则返回false
  */
-export function hasStyle (prop) {
+export default function hasStyle (prop) {
     let res = false;
     if (prop) {
         const _elemStyle = document.createElement('div').style;

@@ -5,7 +5,7 @@ import isBrowser from './isBrowser';
  * @returns {Array} 事件类型
  */
 export default function getEvents () {
-    if (isBrowser()) {
+    if (!isBrowser()) {
         return null;
     }
 

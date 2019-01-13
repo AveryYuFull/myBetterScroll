@@ -13,7 +13,7 @@
 </template>
 
 <script>
-import BetterScroll from '../commons/betterScroll';
+import scrollFactory from '../commons/betterScroll';
 
 export default {
     name: 'bs-list',
@@ -24,7 +24,7 @@ export default {
     },
     mounted() {
         const _that = this;
-        let bScroll = new BetterScroll(_that.$el);
+        let bScroll = scrollFactory(_that.$el);
     }
 };
 </script>
