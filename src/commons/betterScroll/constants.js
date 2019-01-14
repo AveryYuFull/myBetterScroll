@@ -21,7 +21,15 @@ export const DEFAULT_CONFIG = {
     },
     checkDomUpdateTimer: 60, // 检查dom更新定时器
     observeDOM: true, // 检查dom是否更新
-    autoBlur: true // 是否当元素一开始滚动的时候，就将当前页面中input和textarea元素设置为blur
+    autoBlur: true, // 是否当元素一开始滚动的时候，就将当前页面中input和textarea元素设置为blur
+    preventDefaultException: {tagName: /^(INPUT|TEXTAREA|BUTTON|SELECT)$/}, // 如果满足当前条件，就不会阻止事件默认行为，否则就会阻止事件的默认行为
+    preventDefault: true,
+    stopPropagation: true,
+    momentumLimitTime: 300, // 只有在屏幕上快速滑动的时间小于momenumLimitTime, 才会开启momentum动画
+    momentumLimitDistance: 15, // 只有在屏幕上快速滑动的距离大于momentumLimitDistance, 才会开启momentum动画
+    eventPassthrough: null,
+    bounce: true, // 当滚动超过边缘的时候会有一小段回弹动画。设置为 true 则开启动画
+    bounceTime: 700 // 设置回弹动画时长(ms)
 };
 
 /**
