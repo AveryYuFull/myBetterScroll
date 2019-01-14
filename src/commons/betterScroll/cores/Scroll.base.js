@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import DefaultOptions from '../utils/DefaultOptions';
-import { DEFAULT_CONFIG, style, EVENT_TYPE } from '../constants';
+import { DEFAULT_CONFIG, style, EVENT_TYPE, PROBE_TYPE } from '../constants';
 import getElements from '../utils/getElements';
 import hasStyle from '../utils/hasStyle';
 import eventUtil from '../utils/eventUtil';
@@ -305,5 +305,128 @@ export default class ScrollBase extends DefaultOptions {
                 }
             }
         });
+    }
+
+    /**
+     * 过滤bounce
+     * @memberof ScrollBase
+     * @returns {Object} 返回过滤后的bounce值
+     */
+    _filterBounce () {
+        const _that = this;
+        const _opts = _that.defaultOptions;
+        const bounce = _opts.bounce;
+        let left = false;
+        let right = false;
+        let top = false;
+        let bottom = false;
+        if (bounce) {
+            left = typeof bounce.left === 'undefined' ? true : bounce.left;
+            right = typeof bounce.right === 'undefined' ? true : bounce.right;
+            top = typeof bounce.top === 'undefined' ? true : bounce.top;
+            bottom = typeof bounce.bottom === 'undefined' ? true : bounce.bottom;
+        }
+        return {
+            left,
+            right,
+            top,
+            bottom
+        };
+    }
+
+    /**
+     * 为滚动条设置样式
+     * @param {String} prop 属性名
+     * @param {String} val 属性值
+     * @memberof ScrollBase
+     */
+    _setScrollerStyle (prop, val) {
+        const _that = this;
+        if (!prop || !val) {
+            return;
+        }
+        const _scrollerStyle = _that.scroller && _that.scroller.style;
+        _scrollerStyle && (_scrollerStyle[prop] = val);
+    }
+
+    /**
+     * 实时且在momentum动画过程中发送scroll事件
+     * @memberof ScrollBase
+     */
+    _startProbe () {
+        const _that = this;
+    }
+
+    /**
+     * 滚动到指定位置
+     * @param {Number} x 水平滑动的距离
+     * @param {Number} y 垂直滑动的距离
+     * @param {Number} time 动画时间
+     * @param {*} easing 动画方法
+     * @memberof ScrollBase
+     */
+    _scrollTo (x, y, time, easing) {
+        const _that = this;
+        const _opts = _that.defaultOptions;
+        if (x === _that && y === _that.y) {
+            return;
+        }
+        const _isInTransition = time && _opts.useTransition;
+        if (!time || _isInTransition) {
+            _that.isInTransition = _isInTransition;
+            _that._setTransitionTime(time);
+            _that._setTransitionTimingFunction(easing);
+            _that._translate(x, y);
+            if (time && _opts.probeType === PROBE_TYPE.REAL_MOMENTUM_TIME) {
+                _that._startProbe();
+            } else if (_opts.probeType === PROBE_TYPE.REAL_TIME) {
+                _that.$emit(EVENT_TYPE.SCROLL, {
+                    x: _that.x,
+                    y: _that.y
+                });
+            }
+        } else {
+            _that._animate();
+        }
+    }
+
+    /**
+     * 设置滚动条的动画时长
+     * @param {number} [time=0] 动画时长
+     * @memberof ScrollBase
+     */
+    _setTransitionTime (time = 0) {
+        const _that = this;
+        _that._setScrollerStyle(style.transitionDuration, `${time}ms`);
+    }
+
+    /**
+     * 设置动画动画函数
+     * @param {*} easing 动画规则
+     * @memberof ScrollBase
+     */
+    _setTransitionTimingFunction (easing) {
+        const _that = this;
+        _that._setScrollerStyle(style.transitionTimingFunction, easing);
+    }
+
+    /**
+     * 滑动滚动条
+     * @param {Number} x 水平滑动的距离
+     * @param {Number} y 垂直滑动的距离
+     * @memberof ScrollBase
+     */
+    _translate (x, y) {
+        const _that = this;
+        const _opts = _that.defaultOptions;
+        if (_opts.useTransform) {
+            const _hwCompositing = (_opts.HWCompositing && 'translateZ(0)') || '';
+            _that._setScrollerStyle(style.transform, `translate(${x}px, ${y}px) ${_hwCompositing}`);
+        } else {
+            _that._setScrollerStyle('left', `${x}px`);
+            _that._setScrollerStyle('top', `${y}px`);
+        }
+        _that.x = x;
+        _that.y = y;
     }
 }

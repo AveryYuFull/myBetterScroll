@@ -29,7 +29,8 @@ export const DEFAULT_CONFIG = {
     momentumLimitDistance: 15, // 只有在屏幕上快速滑动的距离大于momentumLimitDistance, 才会开启momentum动画
     eventPassthrough: null,
     bounce: true, // 当滚动超过边缘的时候会有一小段回弹动画。设置为 true 则开启动画
-    bounceTime: 700 // 设置回弹动画时长(ms)
+    bounceTime: 700, // 设置回弹动画时长(ms)
+    probeType: 0 // 当probetype为1时，会非实时的（屏幕滑动一段距离后）派发scroll事件，当probeType为2是，会实时派发scroll事件，当probeType为3时，会实时和在momentum动画过程中派发scroll事件
 };
 
 /**
@@ -51,7 +52,8 @@ export const style = {
 export const EVENT_TYPE = {
     REFRESH: 'refresh', // 刷新事件类型
     BEFORE_SCROLL_START: 'beforeScrollStart', // 在元素滚动之前
-    SCROLL_START: 'scrollStart' // 元素刚开始滚动
+    SCROLL_START: 'scrollStart', // 元素刚开始滚动
+    SCROLL: 'scroll' // scroll事件
 };
 
 /**
@@ -70,3 +72,12 @@ export const BUTTON_TYPE = {
     MIDDLE_MOUSE: '1',
     RIGHT_MOUSE: '2'
 };
+
+/**
+ * probeType类型
+ */
+export const PROBE_TYPE = {
+    NORMAL: '1', // 非实时
+    REAL_TIME: '2', // 实时
+    REAL_MOMENTUM_TIME: '3' // 实时+momentum动画
+}
