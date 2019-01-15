@@ -7,6 +7,11 @@ import eventUtil from '../utils/eventUtil';
 import getEvents from '../utils/getEvents';
 import getRect from '../utils/getRect';
 import getStyle from '../utils/getStyle';
+import { requestAnimationFrame, cancelAnimationFrame } from '../utils/raf';
+import getScrollPos from '../utils/getScrollPos';
+import getNow from '../utils/getNow';
+import filterBounce from '../utils/filterBounce';
+import MuObserverPattern from './MuObserverPattern';
 
 export default class ScrollBase extends DefaultOptions {
     defaultOptions = DEFAULT_CONFIG;
@@ -151,50 +156,6 @@ export default class ScrollBase extends DefaultOptions {
     }
 
     /**
-     * 实例化dom节点变化观察器对象
-     * @returns {MutationObserver} 节点观察期对象
-     */
-    _instanceObserver () {
-        const _that = this;
-        let _observer = null;
-        if (typeof window.MutationObserver !== 'undefined') {
-            let _timer = null;
-            _observer = new MutationObserver((mutations) => {
-                if (!mutations) {
-                    return;
-                }
-                let _immediateRefresh = false;
-                let _defferRefresh = false;
-                for (let i = 0; i < mutations.length; i++) {
-                    const _mutaion = mutations[i];
-                    const _type = _mutaion && _mutaion.type;
-                    const _target = _mutaion && _mutaion.target;
-                    if (_type !== 'attributes') {
-                        _immediateRefresh = true;
-                        break;
-                    } else if (_target !== _that.scroller) {
-                        _defferRefresh = true;
-                        break;
-                    }
-                }
-                if (_immediateRefresh) {
-                    _that._refresh();
-                } else if (_defferRefresh) {
-                    clearTimeout(_timer);
-                    _timer = setTimeout(() => {
-                        _that._refresh();
-                    }, 60);
-                }
-            });
-        }
-
-        _that._instanceObserver = function () {
-            return _observer;
-        };
-        return _observer;
-    }
-
-    /**
      * 检查dom元素是否发生改变
      */
     _checkDomUpdate () {
@@ -227,9 +188,11 @@ export default class ScrollBase extends DefaultOptions {
     _initDomObserver () {
         const _that = this;
         const _opts = _that.defaultOptions;
-        if (typeof window.MutationObserver !== 'undefined') {
-            const _observer = _that.observer = _that._instanceObserver();
-            _observer.observe(_that.scroller, _opts.muObserverOptions);
+        if (window && typeof window.MutationObserver !== 'undefined') {
+            _that.muObserverPattern = new MuObserverPattern({
+                cb: _that._refresh.bind(_that)
+            });
+            _that.muObserverPattern.observe(_that.scroller, _opts.muObserverOptions);
         } else {
             _that._checkDomUpdate();
         }
@@ -308,33 +271,6 @@ export default class ScrollBase extends DefaultOptions {
     }
 
     /**
-     * 过滤bounce
-     * @memberof ScrollBase
-     * @returns {Object} 返回过滤后的bounce值
-     */
-    _filterBounce () {
-        const _that = this;
-        const _opts = _that.defaultOptions;
-        const bounce = _opts.bounce;
-        let left = false;
-        let right = false;
-        let top = false;
-        let bottom = false;
-        if (bounce) {
-            left = typeof bounce.left === 'undefined' ? true : bounce.left;
-            right = typeof bounce.right === 'undefined' ? true : bounce.right;
-            top = typeof bounce.top === 'undefined' ? true : bounce.top;
-            bottom = typeof bounce.bottom === 'undefined' ? true : bounce.bottom;
-        }
-        return {
-            left,
-            right,
-            top,
-            bottom
-        };
-    }
-
-    /**
      * 为滚动条设置样式
      * @param {String} prop 属性名
      * @param {String} val 属性值
@@ -355,6 +291,72 @@ export default class ScrollBase extends DefaultOptions {
      */
     _startProbe () {
         const _that = this;
+        const _opts = _that.defaultOptions;
+
+        /**
+         * 动态的派发scroll事件
+         */
+        function _startProbe () {
+            const _pos = getScrollPos(_that.scroller, _opts.useTransform);
+            _that.$emit(EVENT_TYPE.SCROLL, _pos);
+            if (!_that.isInTransition) {
+                _that.$emit(EVENT_TYPE.SCROLL_END, _pos);
+            } else {
+                _that.probeAnimation = requestAnimationFrame(_startProbe);
+            }
+        }
+        if (_that.isInTransition) {
+            _that.probeAnimation = requestAnimationFrame(_startProbe);
+        }
+    }
+
+    /**
+     * 使用requestAnimationFrame进行动画
+     * @param {Number} x 水平移动的位置
+     * @param {Number} y 垂直移动的位置
+     * @param {Number} duration 动画的时长
+     * @param {*} easing 动画曲线函数
+     */
+    _animate (x, y, duration, easing) {
+        const _that = this;
+        const _startTime = getNow();
+        const _endTime = _startTime + duration;
+        const _distanceX = x - _that.x;
+        const _distanceY = y - _that.y;
+        _that.isAnimating = true;
+
+        /**
+         * 开始动画
+         * @param {Number} nowTime 当前的动画时间
+         */
+        function _startAnimate () {
+            let _nowTime = getNow();
+            if (nowTime >= _endTime) {
+                _that.isAnimating = false;
+                _that._translate(x, y);
+                _that.$emit(EVENT_TYPE.SCROLL, {
+                    x: _that.x,
+                    y: _that.y
+                });
+                if (!_that.isAnimating) {
+                    _that.$emit(EVENT_TYPE.SCROLL_END, {
+                        x: _that.x,
+                        y: _that.y
+                    });
+                }
+                return;
+            }
+            _nowTime = (_nowTime - _startTime) / duration;
+            const _newX = easing(_nowTime) * _distanceX + _that.x;
+            const _newY = easing(_nowTime) * _distanceY + _that.y;
+            _that._translate(_newX, _newY);
+            if (_that.isAnimating) {
+                _that.animateAnimation = requestAnimationFrame(_startAnimate);
+            }
+        }
+        if (_that.isAnimating) {
+            _that.animateAnimation = requestAnimationFrame(_startAnimate);
+        }
     }
 
     /**
@@ -375,7 +377,7 @@ export default class ScrollBase extends DefaultOptions {
         if (!time || _isInTransition) {
             _that.isInTransition = _isInTransition;
             _that._setTransitionTime(time);
-            _that._setTransitionTimingFunction(easing);
+            _that._setTransitionTimingFunction(easing.style);
             _that._translate(x, y);
             if (time && _opts.probeType === PROBE_TYPE.REAL_MOMENTUM_TIME) {
                 _that._startProbe();
@@ -386,7 +388,7 @@ export default class ScrollBase extends DefaultOptions {
                 });
             }
         } else {
-            _that._animate();
+            _that._animate(x, y, time, easing.fn);
         }
     }
 

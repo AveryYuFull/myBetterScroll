@@ -53,6 +53,7 @@ export const EVENT_TYPE = {
     REFRESH: 'refresh', // 刷新事件类型
     BEFORE_SCROLL_START: 'beforeScrollStart', // 在元素滚动之前
     SCROLL_START: 'scrollStart', // 元素刚开始滚动
+    SCROLL_END: 'scrollEnd', // 元素滚动结束
     SCROLL: 'scroll' // scroll事件
 };
 
@@ -80,4 +81,4 @@ export const PROBE_TYPE = {
     NORMAL: '1', // 非实时
     REAL_TIME: '2', // 实时
     REAL_MOMENTUM_TIME: '3' // 实时+momentum动画
-}
+};

@@ -66,15 +66,8 @@ export default class ScrollCore extends ScrollBase {
         }
         preventStopEvent(event, _opts);
 
-        const _point = event.touches ? event.touches[0] : event;
-        let _deltaY = _point.pageY - _that.pointY;
-        let _deltaX = _point.pageX - _that.pointX;
-        _that.distY += _deltaY;
-        _that.distX += _deltaX;
-        const _absDistX = Math.abs(_that.distX);
-        const _absDistY = Math.abs(_that.distY);
         const _timestamp = getNow();
-        const { deltaX: _deltaX, deltaY: _deltaY } = _handleDelta(_deltaX, _deltaY);
+        const { deltaX: _deltaX, deltaY: _deltaY } = _handleDelta();
         const { newX: _newX, newY: _newY } = _handleNewPos(_deltaX, _deltaY);
 
         if (!_that.moved) {
@@ -100,11 +93,16 @@ export default class ScrollCore extends ScrollBase {
 
         /**
          * 过滤delta属性
-         * @param {Number} deltaX 水平方向移动的距离
-         * @param {Number} deltaY 垂直方向移动的距离
          * @returns {Object} 返回过滤好的delta属性
          */
-        function _handleDelta (deltaX, deltaY) {
+        function _handleDelta () {
+            const _point = event.touches ? event.touches[0] : event;
+            let deltaY = _point.pageY - _that.pointY;
+            let deltaX = _point.pageX - _that.pointX;
+            _that.distY += deltaY;
+            _that.distX += deltaX;
+            const _absDistX = Math.abs(_that.distX);
+            const _absDistY = Math.abs(_that.distY);
             if (!_that.directionLocked && !_opts.freeScroll) {
                 if (_absDistX - _absDistY > _opts.directionLockThreshold) {
                     _that.directionLocked = 'x';
@@ -134,18 +132,20 @@ export default class ScrollCore extends ScrollBase {
             deltaX = _that.hasScrollX ? deltaX : 0;
             deltaY = _that.hasScrollY ? deltaY : 0;
             return {
-                deltaX: deltaX,
-                deltaY: deltaY
-            }
+                deltaX,
+                deltaY
+            };
         }
 
         /**
          * 过滤新的位置
+         * @param {Number} deltaX 水平方向移动的距离
+         * @param {Number} deltaY 垂直方向移动的距离
          * @returns {Object} 返回新的位置
          */
         function _handleNewPos (deltaX, deltaY) {
-            let _newX = _that.x + _deltaX;
-            let _newY = _that.y + _deltaY;
+            let _newX = _that.x + deltaX;
+            let _newY = _that.y + deltaY;
             if (_newX < _that.maxScrollX || _newX > _that.minScrollX ||
                 _newY < _that.maxScrollY || _newY > _that.minScrollY) {
                 const {left, right, top, bottom} = _that._filterBounce();
