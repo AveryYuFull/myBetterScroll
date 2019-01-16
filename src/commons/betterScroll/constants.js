@@ -19,7 +19,7 @@ export const DEFAULT_CONFIG = {
         childList: true,
         subtree: true
     },
-    checkDomUpdateTimer: 60, // 检查dom更新定时器
+    domUpdateInterval: 60, // 检查dom更新定时器
     observeDOM: true, // 检查dom是否更新
     autoBlur: true, // 是否当元素一开始滚动的时候，就将当前页面中input和textarea元素设置为blur
     preventDefaultException: {tagName: /^(INPUT|TEXTAREA|BUTTON|SELECT)$/}, // 如果满足当前条件，就不会阻止事件默认行为，否则就会阻止事件的默认行为
@@ -81,4 +81,12 @@ export const PROBE_TYPE = {
     NORMAL: '1', // 非实时
     REAL_TIME: '2', // 实时
     REAL_MOMENTUM_TIME: '3' // 实时+momentum动画
+};
+
+/**
+ * 对象类型
+ */
+export const OBJECT_TYPE = {
+    DOM_UPDATE_PATTERN: 'domUpdatePattern',
+    MU_OBSERVER_PATTERN: 'muObserverPattern'
 };

@@ -1,22 +1,11 @@
 import DefaultOptions from '../../utils/DefaultOptions';
 import domUpdateFactory from './DomUpdatePattern';
 import muObserverFactory from './MuObserverPattern';
-import isBrowser from '../../utils/isBrowser';
-
-/**
- * 对象类型
- */
-const OBJECT_TYPE = {
-    DOM_UPDATE_PATTERN: 'domUpdatePattern',
-    MU_OBSERVER_PATTERN: 'muObserverPattern'
-};
+import { OBJECT_TYPE } from '../../constants';
 
 class DomObserver extends DefaultOptions {
     defaultOptions = {};
-    /**
-     * dom节点变化监听器
-     * @private
-     */
+    // dom节点变化监听器
     domObserver = null;
 
     constructor (options) {
@@ -24,6 +13,24 @@ class DomObserver extends DefaultOptions {
 
         const _that = this;
         _that.setDefaultOptions(options);
+
+        _that._init();
+    }
+
+    /**
+     * 初始化
+     * @param {String} type 对象类型
+     */
+    _init () {
+        const _that = this;
+        const _opts = _that.defaultOptions;
+        let _type = (_opts.type || '') + '';
+        _type = _type !== OBJECT_TYPE.MU_OBSERVER_PATTERN ? OBJECT_TYPE.DOM_UPDATE_PATTERN : _type;
+        if (_type === OBJECT_TYPE.MU_OBSERVER_PATTERN) {
+            _that.domObserver = _that._instance(_type, _opts);
+        } else {
+            _that.domObserver = _that._instance(OBJECT_TYPE.DOM_UPDATE_PATTERN, _opts);
+        }
     }
 
     /**
@@ -57,13 +64,32 @@ class DomObserver extends DefaultOptions {
     observe (el, options) {
         const _that = this;
         const _opts = _that.getOptions(options);
-        if (isBrowser() && typeof window.MutationObserver !== 'undefined') {
-            _that.domObserver = _that._instance(OBJECT_TYPE.MU_OBSERVER_PATTERN, _opts);
-            _that.domObserver.observe(el, _opts.muObserverOptions);
-        } else {
-            _that.domObserver = _that._instance(OBJECT_TYPE.DOM_UPDATE_PATTERN, _opts);
+        if (_that.domObserver) {
             _that.domObserver.observe(el, _opts);
         }
+    }
+
+    /**
+     * 阻止观察者观察任何改变
+     */
+    disconnect () {
+        const _that = this;
+        if (_that.domObserver) {
+            _that.domObserver.disconnect(el, _opts);
+        }
+    }
+
+    /**
+     * 取出记录队列中的记录
+     * @returns {Array} 返回记录队列中的记录
+     */
+    takeRecords () {
+        const _that = this;
+        let _records = null;
+        if (_that.domObserver) {
+            _records = _that.domObserver.takeRecords();
+        }
+        return _records;
     }
 }
 

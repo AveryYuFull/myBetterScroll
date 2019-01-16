@@ -5,7 +5,7 @@ import DefaultOptions from '../utils/DefaultOptions';
  * @exports
  */
 class MuObserverPattern extends DefaultOptions {
-    defaultOptions = null;
+    defaultOptions = {};
 
     /**
      * 构造方法
@@ -77,7 +77,7 @@ class MuObserverPattern extends DefaultOptions {
      * @param {HTMLElement} target 观察目标
      * @param {Object} options 通过对象成员来设置观察选项
      */
-    observer (target, options) {
+    observe (target, options) {
         const _that = this;
         const _observer = _that.observer;
         if (_observer && (_observer.observer instanceof Function)) {
@@ -93,6 +93,18 @@ class MuObserverPattern extends DefaultOptions {
         const _observer = _that.observer;
         if (_observer && (_observer.disconnect instanceof Function)) {
             _observer.disconnect();
+        }
+    }
+
+    /**
+     * 取出记录队列中的记录
+     * @returns {Array} 返回记录队列中的记录
+     */
+    takeRecords () {
+        const _that = this;
+        const _observer = _that.observer;
+        if (_observer && (_observer.takeRecords instanceof Function)) {
+            return _observer.takeRecords;
         }
     }
 }

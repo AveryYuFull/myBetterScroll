@@ -3,6 +3,7 @@ import { DEFAULT_CONFIG, EVENT_TYPE_VALUE, BUTTON_TYPE, EVENT_TYPE, PROBE_TYPE }
 import eventUtil from '../utils/eventUtil';
 import getNow from '../utils/getNow';
 import preventStopEvent from '../utils/preventStopEvent';
+import scrollTo from '../helpers/scrollTo';
 
 export default class ScrollCore extends ScrollBase {
     defaultOptions = DEFAULT_CONFIG;
@@ -77,7 +78,7 @@ export default class ScrollCore extends ScrollBase {
             });
             _that.moved = true;
         }
-        _that._scrollTo(_newX, _newY);
+        scrollTo(_newX, _newY, _that, _opts);
 
         if (_timestamp - _that.startTime > _opts.momentumLimitTime) {
             _that.startTime = _timestamp;

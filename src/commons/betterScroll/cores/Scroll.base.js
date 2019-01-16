@@ -1,16 +1,13 @@
 /* eslint-disable max-lines */
 import DefaultOptions from '../utils/DefaultOptions';
-import { DEFAULT_CONFIG, style, EVENT_TYPE, PROBE_TYPE } from '../constants';
+import { DEFAULT_CONFIG, style, EVENT_TYPE, PROBE_TYPE, OBJECT_TYPE } from '../constants';
 import getElements from '../utils/getElements';
 import hasStyle from '../utils/hasStyle';
 import eventUtil from '../utils/eventUtil';
 import getEvents from '../utils/getEvents';
 import getRect from '../utils/getRect';
 import getStyle from '../utils/getStyle';
-import { requestAnimationFrame, cancelAnimationFrame } from '../utils/raf';
-import getScrollPos from '../utils/getScrollPos';
-import getNow from '../utils/getNow';
-import filterBounce from '../utils/filterBounce';
+import domObserverFactory from './domObserver';
 
 export default class ScrollBase extends DefaultOptions {
     defaultOptions = DEFAULT_CONFIG;
@@ -39,7 +36,6 @@ export default class ScrollBase extends DefaultOptions {
             console.error('需要传入滚动元素');
             return false;
         }
-
         return true;
     }
 
@@ -227,133 +223,11 @@ export default class ScrollBase extends DefaultOptions {
     }
 
     /**
-     * 为滚动条设置样式
-     * @param {String} prop 属性名
-     * @param {String} val 属性值
-     * @memberof ScrollBase
-     */
-    _setScrollerStyle (prop, val) {
-        const _that = this;
-        if (!prop || !val) {
-            return;
-        }
-        const _scrollerStyle = _that.scroller && _that.scroller.style;
-        _scrollerStyle && (_scrollerStyle[prop] = val);
-    }
-
-    /**
-     * 实时且在momentum动画过程中发送scroll事件
-     * @memberof ScrollBase
-     */
-    _startProbe () {
-        const _that = this;
-        const _opts = _that.defaultOptions;
-
-        /**
-         * 动态的派发scroll事件
-         */
-        function _startProbe () {
-            const _pos = getScrollPos(_that.scroller, _opts.useTransform);
-            _that.$emit(EVENT_TYPE.SCROLL, _pos);
-            if (!_that.isInTransition) {
-                _that.$emit(EVENT_TYPE.SCROLL_END, _pos);
-            } else {
-                _that.probeAnimation = requestAnimationFrame(_startProbe);
-            }
-        }
-        if (_that.isInTransition) {
-            _that.probeAnimation = requestAnimationFrame(_startProbe);
-        }
-    }
-
-    /**
-     * 使用requestAnimationFrame进行动画
-     * @param {Number} x 水平移动的位置
-     * @param {Number} y 垂直移动的位置
-     * @param {Number} duration 动画的时长
-     * @param {*} easing 动画曲线函数
-     */
-    _animate (x, y, duration, easing) {
-        const _that = this;
-        const _startTime = getNow();
-        const _endTime = _startTime + duration;
-        const _distanceX = x - _that.x;
-        const _distanceY = y - _that.y;
-        _that.isAnimating = true;
-
-        /**
-         * 开始动画
-         * @param {Number} nowTime 当前的动画时间
-         */
-        function _startAnimate () {
-            let _nowTime = getNow();
-            if (nowTime >= _endTime) {
-                _that.isAnimating = false;
-                _that._translate(x, y);
-                _that.$emit(EVENT_TYPE.SCROLL, {
-                    x: _that.x,
-                    y: _that.y
-                });
-                if (!_that.isAnimating) {
-                    _that.$emit(EVENT_TYPE.SCROLL_END, {
-                        x: _that.x,
-                        y: _that.y
-                    });
-                }
-                return;
-            }
-            _nowTime = (_nowTime - _startTime) / duration;
-            const _newX = easing(_nowTime) * _distanceX + _that.x;
-            const _newY = easing(_nowTime) * _distanceY + _that.y;
-            _that._translate(_newX, _newY);
-            if (_that.isAnimating) {
-                _that.animateAnimation = requestAnimationFrame(_startAnimate);
-            }
-        }
-        if (_that.isAnimating) {
-            _that.animateAnimation = requestAnimationFrame(_startAnimate);
-        }
-    }
-
-    /**
-     * 滚动到指定位置
-     * @param {Number} x 水平滑动的距离
-     * @param {Number} y 垂直滑动的距离
-     * @param {Number} time 动画时间
-     * @param {*} easing 动画方法
-     * @memberof ScrollBase
-     */
-    _scrollTo (x, y, time, easing) {
-        const _that = this;
-        const _opts = _that.defaultOptions;
-        if (x === _that && y === _that.y) {
-            return;
-        }
-        const _isInTransition = time && _opts.useTransition;
-        if (!time || _isInTransition) {
-            _that.isInTransition = _isInTransition;
-            _that._setTransitionTime(time);
-            _that._setTransitionTimingFunction(easing.style);
-            _that._translate(x, y);
-            if (time && _opts.probeType === PROBE_TYPE.REAL_MOMENTUM_TIME) {
-                _that._startProbe();
-            } else if (_opts.probeType === PROBE_TYPE.REAL_TIME) {
-                _that.$emit(EVENT_TYPE.SCROLL, {
-                    x: _that.x,
-                    y: _that.y
-                });
-            }
-        } else {
-            _that._animate(x, y, time, easing.fn);
-        }
-    }
-
-    /**
      * 设置滚动条的动画时长
      * @param {number} [time=0] 动画时长
      * @memberof ScrollBase
      */
-    _setTransitionTime (time = 0) {
+    setTransitionTime (time = 0) {
         const _that = this;
         _that._setScrollerStyle(style.transitionDuration, `${time}ms`);
     }
@@ -363,28 +237,34 @@ export default class ScrollBase extends DefaultOptions {
      * @param {*} easing 动画规则
      * @memberof ScrollBase
      */
-    _setTransitionTimingFunction (easing) {
+    setTransitionTimingFunction (easing) {
         const _that = this;
         _that._setScrollerStyle(style.transitionTimingFunction, easing);
     }
 
     /**
-     * 滑动滚动条
-     * @param {Number} x 水平滑动的距离
-     * @param {Number} y 垂直滑动的距离
-     * @memberof ScrollBase
+     * 初始化dom监听器
      */
-    _translate (x, y) {
+    _initDomObserver () {
         const _that = this;
-        const _opts = _that.defaultOptions;
-        if (_opts.useTransform) {
-            const _hwCompositing = (_opts.HWCompositing && 'translateZ(0)') || '';
-            _that._setScrollerStyle(style.transform, `translate(${x}px, ${y}px) ${_hwCompositing}`);
+        let observerOpts = null;
+        if (window && typeof window.MutationObserver !== 'undefined') {
+            observerOpts = {
+                type: OBJECT_TYPE.MU_OBSERVER_PATTERN,
+                cb: _that._refresh.bind(_that)
+            };
         } else {
-            _that._setScrollerStyle('left', `${x}px`);
-            _that._setScrollerStyle('top', `${y}px`);
+            observerOpts = {
+                type: OBJECT_TYPE.DOM_UPDATE_PATTERN,
+                observeCb: _that._refresh.bind(_that),
+                domUpdateInterval: _opts.domUpdateInterval
+            };
         }
-        _that.x = x;
-        _that.y = y;
+        _that.domObserver = domObserverFactory(observerOpts);
+        _that.domObserver.observe(_that.scroller, {
+            muObserverOptions: _opts.muObserverOptions,
+            width: _that.scrollerWidth,
+            height: _that.scrollerHeight
+        });
     }
 }
