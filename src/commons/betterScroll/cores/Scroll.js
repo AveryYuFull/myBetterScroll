@@ -16,12 +16,12 @@ export default class Scroll extends ScrollCore {
      */
     enable () {
         const _that = this;
-        _that.enable = true;
+        _that.enabled = true;
     }
 
     disable () {
         const _that = this;
-        _that.enable = false;
+        _that.enabled = false;
     }
 
     /**

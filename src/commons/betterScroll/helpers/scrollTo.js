@@ -3,6 +3,7 @@ import { style, PROBE_TYPE } from '../constants';
 import getNow from '../utils/getNow';
 import { requestAnimationFrame, cancelAnimationFrame } from '../utils/raf';
 import getScrollPos from '../utils/getScrollPos';
+import { ease } from '../utils/ease';
 
 // 滚动条实例对象
 let _bScroll = null;
@@ -18,7 +19,8 @@ let _opts = null;
  * @param {Number} time 动画时间
  * @param {*} easing 动画方法
  */
-export default function scrollTo (x, y, bScroll, options, time, easing) {
+export default function scrollTo (x, y, bScroll, options, time, easing = ease.bounce) {
+    console.log('scrollTo-->', x, y, bScroll, options, time, easing);
     if (!bScroll) {
         return;
     }
@@ -27,7 +29,7 @@ export default function scrollTo (x, y, bScroll, options, time, easing) {
     _opts = options;
     const _isInTransition = time && _opts.useTransition;
     if (!time || _isInTransition) {
-        _that.isInTransition = isInTransition;
+        _that.isInTransition = _isInTransition;
         _setTransition(time, easing);
         _translate(x, y);
         if (time && _opts.probeType === PROBE_TYPE.REAL_MOMENTUM_TIME) {
@@ -74,16 +76,6 @@ function _setTransition (time, easing) {
     const _that = _bScroll;
     _that.setTransitionTime(time);
     _that.setTransitionTimingFunction(easing.style);
-}
-
-/**
- * 发送事件
- * @param {Scroll} bScroll bScroll实例对象
- * @param {String} type 事件类型
- * @param {Object} opts 事件数据
- */
-function _emit (bScroll, type, opts) {
-    bScroll.$emit(type, opts);
 }
 
 /**

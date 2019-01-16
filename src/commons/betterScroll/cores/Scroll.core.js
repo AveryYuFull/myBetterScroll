@@ -70,7 +70,7 @@ export default class ScrollCore extends ScrollBase {
         const _timestamp = getNow();
         const { deltaX: _deltaX, deltaY: _deltaY } = _handleDelta();
         const { newX: _newX, newY: _newY } = _handleNewPos(_deltaX, _deltaY);
-
+        console.log('_newY-->', _newY);
         if (!_that.moved) {
             _that.$emit(EVENT_TYPE.SCROLL_START, {
                 x: _that.x,

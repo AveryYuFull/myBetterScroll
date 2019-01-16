@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import DefaultOptions from '../utils/DefaultOptions';
 import { DEFAULT_CONFIG, style, EVENT_TYPE, OBJECT_TYPE } from '../constants';
 import getElements from '../utils/getElements';
@@ -8,6 +7,7 @@ import getEvents from '../utils/getEvents';
 import getRect from '../utils/getRect';
 import getStyle from '../utils/getStyle';
 import domObserverFactory from './domObserver/DomObserver';
+import setStyle from '../utils/setStyle';
 
 export default class ScrollBase extends DefaultOptions {
     defaultOptions = DEFAULT_CONFIG;
@@ -229,7 +229,7 @@ export default class ScrollBase extends DefaultOptions {
      */
     setTransitionTime (time = 0) {
         const _that = this;
-        _that._setScrollerStyle(style.transitionDuration, `${time}ms`);
+        setStyle(_that.scroller, style.transitionDuration, `${time}ms`);
     }
 
     /**
@@ -239,7 +239,7 @@ export default class ScrollBase extends DefaultOptions {
      */
     setTransitionTimingFunction (easing) {
         const _that = this;
-        _that._setScrollerStyle(style.transitionTimingFunction, easing);
+        setStyle(_that.scroller, style.transitionTimingFunction, easing);
     }
 
     /**
