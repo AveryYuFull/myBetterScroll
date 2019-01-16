@@ -10,7 +10,7 @@ const noop = function () {};
     }
 
     let _lastTime = 0;
-    const _vendors = ['webkit', 'moz'];
+    const _vendors = ['webkit', 'moz', 'o', 'ms'];
 
     for (let i = 0; i < _vendors.length && !window.requestAnimationFrame; i++) {
         const _vendor = _vendors[i];
