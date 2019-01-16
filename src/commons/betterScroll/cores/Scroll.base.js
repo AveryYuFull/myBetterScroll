@@ -1,13 +1,13 @@
 /* eslint-disable max-lines */
 import DefaultOptions from '../utils/DefaultOptions';
-import { DEFAULT_CONFIG, style, EVENT_TYPE, PROBE_TYPE, OBJECT_TYPE } from '../constants';
+import { DEFAULT_CONFIG, style, EVENT_TYPE, OBJECT_TYPE } from '../constants';
 import getElements from '../utils/getElements';
 import hasStyle from '../utils/hasStyle';
 import eventUtil from '../utils/eventUtil';
 import getEvents from '../utils/getEvents';
 import getRect from '../utils/getRect';
 import getStyle from '../utils/getStyle';
-import domObserverFactory from './domObserver';
+import domObserverFactory from './domObserver/DomObserver';
 
 export default class ScrollBase extends DefaultOptions {
     defaultOptions = DEFAULT_CONFIG;
@@ -247,6 +247,7 @@ export default class ScrollBase extends DefaultOptions {
      */
     _initDomObserver () {
         const _that = this;
+        const _opts = _that.defaultOptions;
         let observerOpts = null;
         if (window && typeof window.MutationObserver !== 'undefined') {
             observerOpts = {

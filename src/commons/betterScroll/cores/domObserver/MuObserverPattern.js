@@ -1,4 +1,4 @@
-import DefaultOptions from '../utils/DefaultOptions';
+import DefaultOptions from '../../utils/DefaultOptions';
 
 /**
  * MutationObserver功能类

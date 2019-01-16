@@ -1,5 +1,5 @@
 import setStyle from '../utils/setStyle';
-import { style } from '../constants';
+import { style, PROBE_TYPE } from '../constants';
 import getNow from '../utils/getNow';
 import { requestAnimationFrame, cancelAnimationFrame } from '../utils/raf';
 import getScrollPos from '../utils/getScrollPos';
