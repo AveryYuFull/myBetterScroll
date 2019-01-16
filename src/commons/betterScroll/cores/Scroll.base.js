@@ -11,7 +11,6 @@ import { requestAnimationFrame, cancelAnimationFrame } from '../utils/raf';
 import getScrollPos from '../utils/getScrollPos';
 import getNow from '../utils/getNow';
 import filterBounce from '../utils/filterBounce';
-import MuObserverPattern from './MuObserverPattern';
 
 export default class ScrollBase extends DefaultOptions {
     defaultOptions = DEFAULT_CONFIG;
@@ -152,49 +151,6 @@ export default class ScrollBase extends DefaultOptions {
                 break;
             case 'transitionend':
                 _that._transitionEnd(event);
-        }
-    }
-
-    /**
-     * 检查dom元素是否发生改变
-     */
-    _checkDomUpdate () {
-        const _that = this;
-        const _opts = _that.defaultOptions;
-        let _timer = null;
-
-        /**
-         * 检查scroller元素的变化
-         */
-        function _check () {
-            const _scrollRect = getRect(_that.scroller);
-            const _width = _scrollRect.width || 0;
-            const _height = _scrollRect.height || 0;
-            if (_width !== _that.scrollerWidth || _height !== _that.scrollerHeight) {
-                _that._refresh();
-            }
-
-            clearTimeout(_timer);
-            _timer = setTimeout(() => {
-                _check();
-            }, _opts.checkDomUpdateTimer);
-        }
-        _check();
-    }
-
-    /**
-     * 初始化dom节点变化观察器
-     */
-    _initDomObserver () {
-        const _that = this;
-        const _opts = _that.defaultOptions;
-        if (window && typeof window.MutationObserver !== 'undefined') {
-            _that.muObserverPattern = new MuObserverPattern({
-                cb: _that._refresh.bind(_that)
-            });
-            _that.muObserverPattern.observe(_that.scroller, _opts.muObserverOptions);
-        } else {
-            _that._checkDomUpdate();
         }
     }
 

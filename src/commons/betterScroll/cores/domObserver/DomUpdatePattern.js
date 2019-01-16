@@ -5,29 +5,31 @@ class DomUpdatePattern extends DefaultOptions {
     // 默认可选参数
     defaultOptions = {};
 
-    constructor (el, options) {
+    constructor (options) {
         super(options);
 
         const _that = this;
         _that.setDefaultOptions(options);
-        _that.el = el;
     }
 
     /**
      * 检查dom元素宽度／高度是否改变
-     * @param {Number} width 初始元素的宽度
-     * @param {Number} height 初始元素的高度
+     * @param {HTMLElement} target 观察目标
+     * @param {Object} options 可选参数
+     * @param {Number} options.width 初始元素的宽度
+     * @param {Number} options.height 初始元素的高度
      */
-    checkDomUpdate (width, height) {
+    observer (target, options) {
         const _that = this;
         const _opts = _that.defaultOptions;
+        let { width, height } = options;
         let _timer = null;
 
         /**
          * 检查scroller元素的变化
          */
         function _check () {
-            const _rect = getRect(_that.el);
+            const _rect = getRect(target);
             const _width = _rect.width || 0;
             const _height = _rect.height || 0;
             if (_width !== width || _height !== height) {
@@ -49,10 +51,9 @@ class DomUpdatePattern extends DefaultOptions {
 
 /**
  * 实例化DomUpdateFactory类
- * @param {HTMLElement} el dom元素
  * @param {Object} options 可选参数
  * @returns {DomUpdatePattern} 返回实例后的DomUpdatePattern对象
  */
-export default function domUpdateFactory (el, options) {
-    return new DomUpdatePattern(el, options);
+export default function domUpdateFactory (options) {
+    return new DomUpdatePattern(options);
 }

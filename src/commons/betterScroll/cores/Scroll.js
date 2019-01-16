@@ -1,5 +1,6 @@
 import ScrollCore from './Scroll.core';
 import { DEFAULT_CONFIG } from '../constants';
+import domObserverFactory from './domObserver';
 
 export default class Scroll extends ScrollCore {
     defaultOptions = DEFAULT_CONFIG;
@@ -38,13 +39,19 @@ export default class Scroll extends ScrollCore {
         _that._handleOptions(options);
         _that.enable();
         _that._watchTransition();
-        if (_opts.observeDOM) {
-            _that._initDomObserver();
-        }
         if (_opts.autoBlur) {
             _that._handleAutoBlur();
         }
         _that._refresh();
+        if (_opts.observeDOM) {
+            _that.domObserver = domObserverFactory();
+            _that.domObserver.observe(_that.scroller, {
+                cb: _that._refresh.bind(_that),
+                muObserverOptions: _opts.muObserverOptions,
+                width: _that.scrollerWidth,
+                height: _that.scrollerHeight
+            });
+        }
         _that._initEventListener();
     }
 }
