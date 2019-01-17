@@ -35,6 +35,8 @@ export default class Scroll extends ScrollCore {
         if (!_that._getElements(el)) {
             return;
         }
+        _that.x = 0;
+        _that.y = 0;
         _that._handleOptions(options);
         _that.enable();
         _that._watchTransition();

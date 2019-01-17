@@ -4,6 +4,7 @@ import eventUtil from '../utils/eventUtil';
 import getNow from '../utils/getNow';
 import preventStopEvent from '../utils/preventStopEvent';
 import scrollTo from '../helpers/scrollTo';
+import filterBounce from '../utils/filterBounce';
 
 export default class ScrollCore extends ScrollBase {
     defaultOptions = DEFAULT_CONFIG;
@@ -69,8 +70,9 @@ export default class ScrollCore extends ScrollBase {
 
         const _timestamp = getNow();
         const { deltaX: _deltaX, deltaY: _deltaY } = _handleDelta();
+        // console.log('_deltaY-->', _deltaY, _that.y);
         const { newX: _newX, newY: _newY } = _handleNewPos(_deltaX, _deltaY);
-        console.log('_newY-->', _newY);
+        // console.log('_newY-->', _newX, _newY);
         if (!_that.moved) {
             _that.$emit(EVENT_TYPE.SCROLL_START, {
                 x: _that.x,
@@ -147,9 +149,11 @@ export default class ScrollCore extends ScrollBase {
         function _handleNewPos (deltaX, deltaY) {
             let _newX = _that.x + deltaX;
             let _newY = _that.y + deltaY;
+            const {left, right, top, bottom} = filterBounce();
+            console.log(_newY, _that.maxScrollY, bottom);
             if (_newX < _that.maxScrollX || _newX > _that.minScrollX ||
                 _newY < _that.maxScrollY || _newY > _that.minScrollY) {
-                const {left, right, top, bottom} = _that._filterBounce();
+                // const {left, right, top, bottom} = filterBounce();
                 if (_newX < _that.maxScrollX && right) {
                     _newX = _that.maxScrollX + (_that.maxScrollX - _newX) / 3;
                 } else if (_newX > _that.minScrollX && left) {
@@ -174,5 +178,16 @@ export default class ScrollCore extends ScrollBase {
      * @memberof ScrollCore
      */
     _end (event) {
+        if (!event) {
+            return;
+        }
+        const _that = this;
+        const _opts = _that.defaultOptions;
+        const _evtType = (event instanceof MouseEvent) ? EVENT_TYPE_VALUE.MOUSE_EVENT : EVENT_TYPE_VALUE.TOUCH_EVENT;
+        if (!_that.enabled || _that.initiated !== _evtType) {
+            return;
+        }
+        _that.initiated = false;
+        preventStopEvent(event, _opts);
     }
 }

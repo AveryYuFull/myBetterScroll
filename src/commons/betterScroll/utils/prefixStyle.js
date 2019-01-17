@@ -51,7 +51,7 @@ export default function prefixStyle (style) {
             style = 'transitionend';
         }
     } else {
-        style = vendor + style.charAt(0).toLocaleUpperCase + style.substr(1);
+        style = vendor + style.charAt(0).toLocaleUpperCase() + style.substr(1);
     }
     return style;
 }

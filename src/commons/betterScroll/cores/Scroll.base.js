@@ -141,7 +141,7 @@ export default class ScrollBase extends DefaultOptions {
                 break;
             case 'mouseup':
             case 'mousecancel':
-            case 'touchup':
+            case 'touchend':
             case 'touchcancel':
                 _that._end(event);
                 break;

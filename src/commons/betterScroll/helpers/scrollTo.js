@@ -20,7 +20,6 @@ let _opts = null;
  * @param {*} easing 动画方法
  */
 export default function scrollTo (x, y, bScroll, options, time, easing = ease.bounce) {
-    console.log('scrollTo-->', x, y, bScroll, options, time, easing);
     if (!bScroll) {
         return;
     }

@@ -11,9 +11,9 @@ export default function getEvents () {
 
     let _evts = null;
     if ('ontouchstart' in window) {
-        _evts = ['touchstart', 'touchmove', 'touchcacel', 'touchend'];
+        _evts = ['touchstart', 'touchmove', 'touchcancel', 'touchend'];
     } else {
-        _evts = ['mousedown', 'mousemove', 'mousecancel', 'mouseend'];
+        _evts = ['mousedown', 'mousemove', 'mousecancel', 'mouseup'];
     }
     return _evts;
 }

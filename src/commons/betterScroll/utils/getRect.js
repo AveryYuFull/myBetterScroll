@@ -22,14 +22,14 @@ export default function getRect (el) {
                 width: _rect.width,
                 height: _rect.height
             };
-        } else {
-            _res = {
-                top: el.offsetTop,
-                left: el.offsetLeft,
-                width: el.offsetWidth,
-                height: el.offsetHeight
-            };
         }
+    } else {
+        _res = {
+            top: el.offsetTop,
+            left: el.offsetLeft,
+            width: el.offsetWidth,
+            height: el.offsetHeight
+        };
     }
     return _res;
 }
