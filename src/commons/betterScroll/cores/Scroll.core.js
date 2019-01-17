@@ -72,7 +72,7 @@ export default class ScrollCore extends ScrollBase {
         const { deltaX: _deltaX, deltaY: _deltaY } = _handleDelta();
         // console.log('_deltaY-->', _deltaY, _that.y);
         const { newX: _newX, newY: _newY } = _handleNewPos(_deltaX, _deltaY);
-        // console.log('_newY-->', _newX, _newY);
+        console.log('_newY-->', _newY);
         if (!_that.moved) {
             _that.$emit(EVENT_TYPE.SCROLL_START, {
                 x: _that.x,
@@ -104,6 +104,8 @@ export default class ScrollCore extends ScrollBase {
             let deltaX = _point.pageX - _that.pointX;
             _that.distY += deltaY;
             _that.distX += deltaX;
+            _that.pointX = _point.pageX;
+            _that.pointY = _point.pageY;
             const _absDistX = Math.abs(_that.distX);
             const _absDistY = Math.abs(_that.distY);
             if (!_that.directionLocked && !_opts.freeScroll) {
@@ -149,11 +151,9 @@ export default class ScrollCore extends ScrollBase {
         function _handleNewPos (deltaX, deltaY) {
             let _newX = _that.x + deltaX;
             let _newY = _that.y + deltaY;
-            const {left, right, top, bottom} = filterBounce();
-            console.log(_newY, _that.maxScrollY, bottom);
             if (_newX < _that.maxScrollX || _newX > _that.minScrollX ||
                 _newY < _that.maxScrollY || _newY > _that.minScrollY) {
-                // const {left, right, top, bottom} = filterBounce();
+                const {left, right, top, bottom} = filterBounce();
                 if (_newX < _that.maxScrollX && right) {
                     _newX = _that.maxScrollX + (_that.maxScrollX - _newX) / 3;
                 } else if (_newX > _that.minScrollX && left) {
