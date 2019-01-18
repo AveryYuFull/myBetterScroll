@@ -19,12 +19,23 @@ export default {
     name: 'bs-list',
     data () {
         return {
-            itemData: new Array(50).fill(1)
+            itemData: []
         };
     },
     mounted() {
         const _that = this;
-        let bScroll = scrollFactory(_that.$el);
+        _that.genItemData();
+        setTimeout(() => {
+            let bScroll = scrollFactory(_that.$el);
+        });
+    },
+    methods: {
+        genItemData (lower = 0, upper = 100) {
+            const _that = this;
+            for (let i = lower; i < upper; i++) {
+                _that.itemData.push(i);
+            }
+        }
     }
 };
 </script>

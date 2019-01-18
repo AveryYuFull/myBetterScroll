@@ -30,6 +30,9 @@ export const DEFAULT_CONFIG = {
     eventPassthrough: null,
     bounce: true, // 当滚动超过边缘的时候会有一小段回弹动画。设置为 true 则开启动画
     bounceTime: 700, // 设置回弹动画时长(ms)
+    swipeTime: 2500, // momentum动画的时长
+    swipeBounceTime: 500, // momentum动画回弹的时长
+    deceleration: 0.001, // momentum动画的减速度
     probeType: 0 // 当probetype为1时，会非实时的（屏幕滑动一段距离后）派发scroll事件，当probeType为2是，会实时派发scroll事件，当probeType为3时，会实时和在momentum动画过程中派发scroll事件
 };
 
@@ -54,7 +57,8 @@ export const EVENT_TYPE = {
     BEFORE_SCROLL_START: 'beforeScrollStart', // 在元素滚动之前
     SCROLL_START: 'scrollStart', // 元素刚开始滚动
     SCROLL_END: 'scrollEnd', // 元素滚动结束
-    SCROLL: 'scroll' // scroll事件
+    SCROLL: 'scroll', // scroll事件
+    TOUCH_END: 'touchEnd' // 松开鼠标
 };
 
 /**
@@ -89,4 +93,31 @@ export const PROBE_TYPE = {
 export const OBJECT_TYPE = {
     DOM_UPDATE_PATTERN: 'domUpdatePattern',
     MU_OBSERVER_PATTERN: 'muObserverPattern'
+};
+
+/**
+ * 滚动条滑动方向
+ */
+export const MOVING_DIRECTION = {
+    TOP: 0,
+    BOTTOM: 1,
+    LEFT: 2,
+    RIGHT: 3
+};
+
+/**
+ * 锁定的滑动放向
+ */
+export const LOCKED_DIRECTION = {
+    HORIZONTAL: 'horizontal',
+    VERTICAL: 'vertical',
+    NO: 'n'
+};
+
+/**
+ * 动画类型
+ */
+export const ANIMATE_TYPE = {
+    ANIMATION: 'animation', // 通过requestAnimation开启的动画
+    TRANSITION: 'transition' // 通过css3的transition开启的动画
 };

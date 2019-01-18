@@ -8,6 +8,8 @@ import getRect from '../utils/getRect';
 import getStyle from '../utils/getStyle';
 import domObserverFactory from './domObserver/DomObserver';
 import setStyle from '../utils/setStyle';
+import resetPosition from '../helpers/resetPosition';
+import { ease } from '../utils/ease';
 
 export default class ScrollBase extends DefaultOptions {
     defaultOptions = DEFAULT_CONFIG;
@@ -266,6 +268,30 @@ export default class ScrollBase extends DefaultOptions {
             muObserverOptions: _opts.muObserverOptions,
             width: _that.scrollerWidth,
             height: _that.scrollerHeight
+        });
+    }
+
+    /**
+     * 如果滚动条划出最小／最大可滑动距离，就会重置
+     * @returns {Boolean} 如果有重置过滚动条位置，就返回true，否则返回false
+     */
+    _resetPosition () {
+        const _that = this;
+        const _opts = _that.defaultOptions;
+        const _minScroll = {
+            x: _that.minScrollX,
+            y: _that.minScrollY
+        };
+        const _maxScroll = {
+            x: _that.maxScrollX,
+            y: _that.maxScrollY
+        };
+
+        return resetPosition(_that.x, _that.y, _opts.bounceTime, ease.bounce, {
+            minScroll: _minScroll,
+            maxScroll: _maxScroll,
+            bScroll: _that,
+            opts: _opts
         });
     }
 }

@@ -1,9 +1,10 @@
 import setStyle from '../utils/setStyle';
-import { style, PROBE_TYPE } from '../constants';
+import { style, PROBE_TYPE, ANIMATE_TYPE } from '../constants';
 import getNow from '../utils/getNow';
 import { requestAnimationFrame, cancelAnimationFrame } from '../utils/raf';
 import getScrollPos from '../utils/getScrollPos';
 import { ease } from '../utils/ease';
+import extend from '../utils/extend';
 
 // 滚动条实例对象
 let _bScroll = null;
@@ -14,12 +15,12 @@ let _opts = null;
  * 滚动到指定位置
  * @param {Number} x 水平滑动的距离
  * @param {Number} y 垂直滑动的距离
- * @param {Scroll} bScroll BScroll 对象
- * @param {Object} options 可选参数
  * @param {Number} time 动画时间
  * @param {*} easing 动画方法
+ * @param {Scroll} bScroll BScroll 对象
+ * @param {Object} options 可选参数
  */
-export default function scrollTo (x, y, bScroll, options, time, easing = ease.bounce) {
+export default function scrollTo (x, y, time, easing = ease.bounce, bScroll, options) {
     if (!bScroll) {
         return;
     }
@@ -129,6 +130,7 @@ function _animate (x, y, duration, easing) {
                     y: _that.y
                 });
             }
+            dispatchEvt(_that.scroller, style.transitionEnd, {type: ANIMATE_TYPE.ANIMATION});
             return;
         }
         _nowTime = (_nowTime - _startTime) / duration;
@@ -141,5 +143,21 @@ function _animate (x, y, duration, easing) {
     }
     if (_that.isAnimating) {
         _that.animateAnimation = requestAnimationFrame(_startAnimate);
+    }
+}
+
+/**
+ * 模拟dom派发事件
+ * @param {HTMLElement|Window} target 事件目标元素
+ * @param {String} evtType 事件类型
+ * @param {Object} options 可选参数
+ */
+function dispatchEvt (target, evtType, options) {
+    if (target && target.tagName && evtType && typeof evtType === 'string') {
+        let _evt = document.createEvent(window && window.MouseEvent ? 'MouseEvents' : 'Event');
+        _evt.initEvent(evtType, true, true);
+        _evt = extend({}, _evt, options);
+        _evt._constructed = true;
+        target.dispatchEvent(_evt);
     }
 }

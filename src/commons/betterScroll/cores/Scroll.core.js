@@ -1,10 +1,16 @@
 import ScrollBase from './Scroll.base';
-import { DEFAULT_CONFIG, EVENT_TYPE_VALUE, BUTTON_TYPE, EVENT_TYPE, PROBE_TYPE } from '../constants';
+import { DEFAULT_CONFIG, EVENT_TYPE_VALUE,
+    BUTTON_TYPE, EVENT_TYPE, PROBE_TYPE,
+    MOVING_DIRECTION, LOCKED_DIRECTION,
+    ANIMATE_TYPE } from '../constants';
 import eventUtil from '../utils/eventUtil';
 import getNow from '../utils/getNow';
 import preventStopEvent from '../utils/preventStopEvent';
 import scrollTo from '../helpers/scrollTo';
 import filterBounce from '../utils/filterBounce';
+import { ease } from '../utils/ease';
+import momentum from '../helpers/momentum';
+import { cancelAnimationFrame } from '../utils/raf';
 
 export default class ScrollCore extends ScrollBase {
     defaultOptions = DEFAULT_CONFIG;
@@ -47,6 +53,8 @@ export default class ScrollCore extends ScrollBase {
         _that.distY = 0;
         _that.directionLocked = 0;
         _that.startTime = getNow();
+        _that.directionX = 0;
+        _that.directionY = 0;
 
         _that.$emit(EVENT_TYPE.BEFORE_SCROLL_START, {
             x: _that.x,
@@ -69,10 +77,9 @@ export default class ScrollCore extends ScrollBase {
         preventStopEvent(event, _opts);
 
         const _timestamp = getNow();
-        const { deltaX: _deltaX, deltaY: _deltaY } = _handleDelta();
-        // console.log('_deltaY-->', _deltaY, _that.y);
-        const { newX: _newX, newY: _newY } = _handleNewPos(_deltaX, _deltaY);
-        console.log('_newY-->', _newY);
+        const { deltaX: _deltaX, deltaY: _deltaY } = _getDelta();
+        const { newX: _newX, newY: _newY } = _getNewPos(_deltaX, _deltaY);
+
         if (!_that.moved) {
             _that.$emit(EVENT_TYPE.SCROLL_START, {
                 x: _that.x,
@@ -80,7 +87,7 @@ export default class ScrollCore extends ScrollBase {
             });
             _that.moved = true;
         }
-        scrollTo(_newX, _newY, _that, _opts);
+        scrollTo(_newX, _newY, 0, ease.bounce, _that, _opts);
 
         if (_timestamp - _that.startTime > _opts.momentumLimitTime) {
             _that.startTime = _timestamp;
@@ -98,7 +105,7 @@ export default class ScrollCore extends ScrollBase {
          * 过滤delta属性
          * @returns {Object} 返回过滤好的delta属性
          */
-        function _handleDelta () {
+        function _getDelta () {
             const _point = event.touches ? event.touches[0] : event;
             let deltaY = _point.pageY - _that.pointY;
             let deltaX = _point.pageX - _that.pointX;
@@ -110,14 +117,14 @@ export default class ScrollCore extends ScrollBase {
             const _absDistY = Math.abs(_that.distY);
             if (!_that.directionLocked && !_opts.freeScroll) {
                 if (_absDistX - _absDistY > _opts.directionLockThreshold) {
-                    _that.directionLocked = 'x';
+                    _that.directionLocked = LOCKED_DIRECTION.HORIZONTAL;
                 } else if (_absDistY - _absDistX >= _opts.directionLockThreshold) {
-                    _that.directionLocked = 'y';
+                    _that.directionLocked = LOCKED_DIRECTION.VERTICAL;
                 } else {
-                    _that.directionLocked = 'n';
+                    _that.directionLocked = LOCKED_DIRECTION.NO;
                 }
             }
-            if (_that.directionLocked === 'x') {
+            if (_that.directionLocked === LOCKED_DIRECTION.HORIZONTAL) {
                 if (_opts.eventPassthrough === 'horizontal') {
                     _that.initiated = false;
                     return;
@@ -125,7 +132,7 @@ export default class ScrollCore extends ScrollBase {
                     eventUtil.preventDefault();
                 }
                 deltaY = 0;
-            } else if (_that.directionLocked === 'y') {
+            } else if (_that.directionLocked === LOCKED_DIRECTION.VERTICAL) {
                 if (_opts.eventPassthrough === 'vertical') {
                     _that.initiated = false;
                     return;
@@ -148,27 +155,49 @@ export default class ScrollCore extends ScrollBase {
          * @param {Number} deltaY 垂直方向移动的距离
          * @returns {Object} 返回新的位置
          */
-        function _handleNewPos (deltaX, deltaY) {
+        function _getNewPos (deltaX, deltaY) {
             let _newX = _that.x + deltaX;
             let _newY = _that.y + deltaY;
-            if (_newX < _that.maxScrollX || _newX > _that.minScrollX ||
-                _newY < _that.maxScrollY || _newY > _that.minScrollY) {
-                const {left, right, top, bottom} = filterBounce();
-                if (_newX < _that.maxScrollX && right) {
-                    _newX = _that.maxScrollX + (_that.maxScrollX - _newX) / 3;
-                } else if (_newX > _that.minScrollX && left) {
-                    _newX = _that.minScrollX + (_newX - _that.minScrollX) / 3;
-                }
-                if (_newY < _that.maxScrollY && bottom) {
-                    _newY = _that.maxScrollY + (_that.maxScrollY - _newY) / 3;
-                } else if (_newY > _that.minScrollY && top) {
-                    _newY = _that.minScrollY + (_newY - _that.minScrollY) / 3;
-                }
-            }
+            const {left, right, top, bottom} = filterBounce(_opts.bounce);
+            _newX = _filterNewPos(_newX, _that.x, _that.minScrollX, _that.maxScrollX, {
+                bounceMin: left,
+                bounceMax: right
+            }, deltaX);
+            _newY = _filterNewPos(_newY, _that.y, _that.minScrollY, _that.maxScrollY, {
+                bounceMin: top,
+                bounceMax: bottom
+            }, deltaY);
             return {
                 newX: _newX,
                 newY: _newY
             };
+
+            /**
+             * 过滤滚动条的位置
+             * @param {Number} pos 目标过滤的位置
+             * @param {Number} lastPos 最后一次的滚动条的位置
+             * @param {Number} minScroll 最小可以滚动的距离
+             * @param {Number} maxScroll 最大可以滚动的距离
+             * @param {Boolean} bounce 滚动超过滚动距离的一边是否支持回弹动画
+             * @param {Number} delta 滑动的距离
+             * @returns {Number} 返回过滤后的位置
+             */
+            function _filterNewPos (pos, lastPos, minScroll, maxScroll, bounce, delta) {
+                /**
+                 * bounceMin 滚动超过最小的滚动距离的一边是否支持回弹动画
+                 * bounceMax 滚动超过最大的滚动距离的一边是否支持回弹动画
+                 */
+                const { bounceMin, bounceMax } = bounce;
+                if (pos > minScroll || pos < maxScroll) {
+                    if ((pos > minScroll && bounceMin) ||
+                        (pos < maxScroll && bounceMax)) {
+                        pos = lastPos + delta / 3;
+                    } else {
+                        pos = pos > minScroll ? minScroll : maxScroll;
+                    }
+                }
+                return pos;
+            }
         }
     }
 
@@ -189,5 +218,67 @@ export default class ScrollCore extends ScrollBase {
         }
         _that.initiated = false;
         preventStopEvent(event, _opts);
+
+        _that.$emit(EVENT_TYPE.TOUCH_END, {
+            x: _that.x,
+            y: _that.y
+        });
+
+        if (_that._resetPosition()) {
+            return;
+        }
+
+        _that.endTime = getNow();
+        let _newX = _that.x;
+        let _newY = _that.y;
+        let _duration = 0;
+        const _distX = _that.x - _that.absStartX;
+        const _distY = _that.y - _that.absStartY;
+        _that.directionX = _distX < 0 ? MOVING_DIRECTION.LEFT : MOVING_DIRECTION.RIGHT;
+        _that.directionY = _distY < 0 ? MOVING_DIRECTION.TOP : MOVING_DIRECTION.BOTTOM;
+        const _absDistX = Math.abs(_distX);
+        const _absDistY = Math.abs(_distY);
+        if (_that.endTime - _that.startTime < _opts.momentumLimitTime &&
+            (_absDistX > _opts.momentumLimitDistance || _absDistY > _opts.momentumLimitDistance)) { // 开启动量
+            const { left, right, top, bottom } = filterBounce(_opts.bounce);
+            let _wrapSizeX = 0;
+            let _wrapSizeY = 0;
+            const _time = _that.endTime - _that.startTime;
+            if ((_that.directionX === MOVING_DIRECTION.LEFT && right) ||
+                (_that.directionX === MOVING_DIRECTION.RIGHT && left)) {
+                _wrapSizeX = _that.wrapperWidth;
+            }
+            if ((_that.directionY === MOVING_DIRECTION.TOP && bottom) ||
+                (_that.directionY === MOVING_DIRECTION.BOTTOM && top)) {
+                _wrapSizeY = _that.wrapperHeight;
+            }
+            const _momentumX = _that.hasScrollX
+                ? momentum(_that.startX, _that.x, _time, _wrapSizeX, _that.minScrollX, _that.maxScrollX, _opts)
+                : { destination: _that.x, duration: 0 };
+            const _momentumY = _that.hasScrollY
+                ? momentum(_that.startY, _that.y, _time, _wrapSizeY, _that.minScrollY, _that.maxScrollY, _opts)
+                : { destination: _that.y, duration: 0 };
+            _duration = Math.max(_momentumX.duration, _momentumY.duration);
+            _newX = _momentumX.destination;
+            _newY = _momentumY.destination;
+        }
+        scrollTo(_newX, _newY, _duration, ease.swipe, _that, _opts);
+    }
+
+    /**
+     * 使用transition开启动画方式动画结束的回调
+     * @param {Event} event 事件对象
+     */
+    _transitionEnd (event) {
+        const _that = this;
+        const _type = (event && event.type) || ANIMATE_TYPE.TRANSITION;
+
+        if (_type === ANIMATE_TYPE.ANIMATION) { // 通过requestAnimation开启的动画
+            _that.isAnimating = false;
+            cancelAnimationFrame(_that.animateAnimation);
+        } else { // 通过css3的transition开启的动画
+            _that.isInTransition = false;
+        }
+        _that._resetPosition();
     }
 }
