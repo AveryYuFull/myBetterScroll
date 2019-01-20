@@ -28,13 +28,12 @@ export default function momentum (startPos, curPos, time, wrapSize, minScroll, m
     let _newPos = curPos + (_speed / deceleration) * (_distance < 0 ? -1 : 1);
     let _duration = swipeTime;
     let _rate = 15;
-    let _tmpPos = _newPos;
     if (_newPos > minScroll) {
-        _newPos = wrapSize ? Math.max(minScroll + wrapSize / _rate, minScroll + wrapSize / _speed)
+        _newPos = wrapSize ? Math.min(minScroll + wrapSize / 4, minScroll + wrapSize / (_speed * _rate))
             : minScroll;
         _duration = swipeBounceTime;
     } else if (_newPos < maxScroll) {
-        _newPos = wrapSize ? Math.max(maxScroll - wrapSize / _rate, maxScroll - wrapSize / (_speed))
+        _newPos = wrapSize ? Math.max(maxScroll - wrapSize / 4, maxScroll - wrapSize / (_speed * _rate))
             : maxScroll;
         _duration = swipeBounceTime;
     }
