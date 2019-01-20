@@ -7,7 +7,7 @@ import prefixStyle from './utils/prefixStyle';
 export const DEFAULT_CONFIG = {
     HWCompositing: true, // 是否开启动画硬件加速（让GPU工作，这样效率更高）
     useTransform: true, // 是否使用transform移动位置
-    useTransition: true, // 是否使用transition动画
+    useTransition: false, // 是否使用transition动画
     scrollX: false, // 是否开启横向滚动条
     scrollY: true, // 是否开启纵向滚动条
     freeScroll: false, // 是否开启横向和纵向滚动条
@@ -30,6 +30,7 @@ export const DEFAULT_CONFIG = {
     eventPassthrough: null,
     bounce: true, // 当滚动超过边缘的时候会有一小段回弹动画。设置为 true 则开启动画
     bounceTime: 700, // 设置回弹动画时长(ms)
+    momentum: true, // 是否开启动画
     swipeTime: 2500, // momentum动画的时长
     swipeBounceTime: 500, // momentum动画回弹的时长
     deceleration: 0.001, // momentum动画的减速度

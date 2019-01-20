@@ -103,13 +103,13 @@ export default class ScrollBase extends DefaultOptions {
         const _that = this;
         const _opts = _that.defaultOptions;
         const _pointerEvents = getEvents();
-        const _target = _opts.bindToWrapper ? _that.scroller : window;
+        const _target = _opts.bindToWrapper ? _that.wrapper : window;
 
         let _args = [
-            [window, _opts.listenerEvents, _that._handleEvent.bind(_that), true],
-            [_that.scroller, _pointerEvents[0], _that._handleEvent.bind(_that), true],
-            [_target, _pointerEvents.slice(0), _that._handleEvent.bind(_that), true],
-            [_that.scroller, style.transitionEnd, _that._handleEvent.bind(_that), true]
+        [window, _opts.listenerEvents, _that._handleEvent.bind(_that), true],
+            [_that.wrapper, _pointerEvents[0], _that._handleEvent.bind(_that), true],
+            [_target, _pointerEvents.slice(1), _that._handleEvent.bind(_that), true],
+            [_that.wrapper, style.transitionEnd, _that._handleEvent.bind(_that), true]
         ];
         _args.forEach(item => {
             if (item) {
@@ -147,7 +147,7 @@ export default class ScrollBase extends DefaultOptions {
             case 'touchcancel':
                 _that._end(event);
                 break;
-            case 'transitionend':
+            case style['transitionEnd']:
                 _that._transitionEnd(event);
         }
     }

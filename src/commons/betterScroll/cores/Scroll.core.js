@@ -10,7 +10,8 @@ import scrollTo from '../helpers/scrollTo';
 import filterBounce from '../utils/filterBounce';
 import { ease } from '../utils/ease';
 import momentum from '../helpers/momentum';
-import { cancelAnimationFrame } from '../utils/raf';
+import raf from '../utils/raf';
+import getScrollPos from '../utils/getScrollPos';
 
 export default class ScrollCore extends ScrollBase {
     defaultOptions = DEFAULT_CONFIG;
@@ -41,6 +42,7 @@ export default class ScrollCore extends ScrollBase {
         }
         _that.initiated = _evtType;
         preventStopEvent(event, _opts);
+        _that._stopAnimate();
         _that.moved = false;
         const _point = event.touches ? event.touches[0] : event;
         _that.pointX = _point.pageX;
@@ -55,6 +57,8 @@ export default class ScrollCore extends ScrollBase {
         _that.startTime = getNow();
         _that.directionX = 0;
         _that.directionY = 0;
+        _that.movingDirectionX = 0;
+        _that.movingDirectionY = 0;
 
         _that.$emit(EVENT_TYPE.BEFORE_SCROLL_START, {
             x: _that.x,
@@ -78,6 +82,8 @@ export default class ScrollCore extends ScrollBase {
 
         const _timestamp = getNow();
         const { deltaX: _deltaX, deltaY: _deltaY } = _getDelta();
+        _that.movingDirectionX = _deltaX < 0 ? MOVING_DIRECTION.LEFT : (_deltaX > 0) ? MOVING_DIRECTION.RIGHT : 0;
+        _that.movingDirectionY = _deltaY < 0 ? MOVING_DIRECTION.TOP : _deltaY > 0 ? MOVING_DIRECTION.BOTTOM : 0;
         const { newX: _newX, newY: _newY } = _getNewPos(_deltaX, _deltaY);
 
         if (!_that.moved) {
@@ -224,26 +230,27 @@ export default class ScrollCore extends ScrollBase {
             y: _that.y
         });
 
+        let _newX = Math.round(_that.x);
+        let _newY = Math.round(_that.y);
+        const _deltaX = _newX - _that.absStartX;
+        const _deltaY = _newY - _that.absStartY;
+        _that.directionX = _deltaX < 0 ? MOVING_DIRECTION.LEFT : _deltaX > 0 ? MOVING_DIRECTION.RIGHT : 0;
+        _that.directionY = _deltaY < 0 ? MOVING_DIRECTION.TOP : _deltaY > 0 ? MOVING_DIRECTION.BOTTOM : 0;
+
         if (_that._resetPosition()) {
             return;
         }
 
         _that.endTime = getNow();
-        let _newX = _that.x;
-        let _newY = _that.y;
-        let _duration = 0;
-        const _distX = _that.x - _that.absStartX;
-        const _distY = _that.y - _that.absStartY;
-        _that.directionX = _distX < 0 ? MOVING_DIRECTION.LEFT : MOVING_DIRECTION.RIGHT;
-        _that.directionY = _distY < 0 ? MOVING_DIRECTION.TOP : MOVING_DIRECTION.BOTTOM;
-        const _absDistX = Math.abs(_distX);
-        const _absDistY = Math.abs(_distY);
-        if (_that.endTime - _that.startTime < _opts.momentumLimitTime &&
+        const _duration = _that.endTime - _that.startTime;
+        const _absDistX = Math.abs(_newX - _that.startX);
+        const _absDistY = Math.abs(_newY - _that.startY);
+        let _time = 0;
+        if (_opts.momentum && _duration < _opts.momentumLimitTime &&
             (_absDistX > _opts.momentumLimitDistance || _absDistY > _opts.momentumLimitDistance)) { // 开启动量
             const { left, right, top, bottom } = filterBounce(_opts.bounce);
             let _wrapSizeX = 0;
             let _wrapSizeY = 0;
-            const _time = _that.endTime - _that.startTime;
             if ((_that.directionX === MOVING_DIRECTION.LEFT && right) ||
                 (_that.directionX === MOVING_DIRECTION.RIGHT && left)) {
                 _wrapSizeX = _that.wrapperWidth;
@@ -253,16 +260,28 @@ export default class ScrollCore extends ScrollBase {
                 _wrapSizeY = _that.wrapperHeight;
             }
             const _momentumX = _that.hasScrollX
-                ? momentum(_that.startX, _that.x, _time, _wrapSizeX, _that.minScrollX, _that.maxScrollX, _opts)
+                ? momentum(_that.startX, _that.x, _duration, _wrapSizeX, _that.minScrollX, _that.maxScrollX, _opts)
                 : { destination: _that.x, duration: 0 };
             const _momentumY = _that.hasScrollY
-                ? momentum(_that.startY, _that.y, _time, _wrapSizeY, _that.minScrollY, _that.maxScrollY, _opts)
+                ? momentum(_that.startY, _that.y, _duration, _wrapSizeY, _that.minScrollY, _that.maxScrollY, _opts)
                 : { destination: _that.y, duration: 0 };
-            _duration = Math.max(_momentumX.duration, _momentumY.duration);
+            _time = Math.max(_momentumX.duration, _momentumY.duration);
             _newX = _momentumX.destination;
             _newY = _momentumY.destination;
         }
-        scrollTo(_newX, _newY, _duration, ease.swipe, _that, _opts);
+        let easing = ease.swipe;
+        if (_newX !== _that.x || _newY !== _that.y) {
+            if (_newX < _that.minScrollX || _newX > _that.minScrollX ||
+                _newY < _that.minScrollY || _newY > _that.minScrollY) {
+                easing = ease.swipeBounce;
+            }
+            scrollTo(_newX, _newY, _time, easing, _that, _opts);
+        } else {
+            _that.$emit(EVENT_TYPE.SCROLL_END, {
+                x: _that.x,
+                y: _that.y
+            });
+        }
     }
 
     /**
@@ -271,14 +290,52 @@ export default class ScrollCore extends ScrollBase {
      */
     _transitionEnd (event) {
         const _that = this;
-        const _type = (event && event.type) || ANIMATE_TYPE.TRANSITION;
+        if (event.target !== _that.scroller || (!_that.isInTransition && !_that.isAnimating)) {
+            return;
+        }
 
+        const _type = (event && event.__evtType__) || ANIMATE_TYPE.TRANSITION;
         if (_type === ANIMATE_TYPE.ANIMATION) { // 通过requestAnimation开启的动画
             _that.isAnimating = false;
-            cancelAnimationFrame(_that.animateAnimation);
+            raf.cancelAnimationFrame(_that.animateTimer);
         } else { // 通过css3的transition开启的动画
             _that.isInTransition = false;
+            _that.setTransitionTime(0);
+            raf.cancelAnimationFrame(_that.probeTimer);
         }
-        _that._resetPosition();
+        const _needReset = !_that.pulling || _that.movingDirectionY === MOVING_DIRECTION.TOP;
+        if (_needReset && !_that._resetPosition()) {
+            _that.$emit(EVENT_TYPE.SCROLL_END, {
+                x: _that.x,
+                y: _that.y
+            });
+        }
+    }
+
+    /**
+     * 停止滚动条滚动
+     */
+    _stopAnimate () {
+        const _that = this;
+        const _opts = _that.defaultOptions;
+        if (_opts.useTransition && _that.isInTransition) {
+            _that.isInTransition = false;
+            raf.cancelAnimationFrame(_that.probeTimer);
+            const _pos = getScrollPos(_that.scroller, _opts.useTransform);
+            if (_pos) {
+                scrollTo(_pos.x, _pos.y, 0, null, _that, _opts);
+            }
+            _that.$emit(EVENT_TYPE.SCROLL_END, {
+                x: _that.x,
+                y: _that.y
+            });
+        } else if (!_opts.useTransition && _that.isAnimating) {
+            _that.isAnimating = false;
+            raf.cancelAnimationFrame(_that.animateTimer);
+            _that.$emit(EVENT_TYPE.SCROLL_END, {
+                x: _that.x,
+                y: _that.y
+            });
+        }
     }
 }

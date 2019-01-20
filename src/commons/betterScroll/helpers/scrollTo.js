@@ -1,10 +1,10 @@
 import setStyle from '../utils/setStyle';
-import { style, PROBE_TYPE, ANIMATE_TYPE } from '../constants';
+import { style, EVENT_TYPE, ANIMATE_TYPE, PROBE_TYPE } from '../constants';
 import getNow from '../utils/getNow';
-import { requestAnimationFrame, cancelAnimationFrame } from '../utils/raf';
+import raf from '../utils/raf';
 import getScrollPos from '../utils/getScrollPos';
 import { ease } from '../utils/ease';
-import extend from '../utils/extend';
+import dispatchEvt from '../utils/dispatchEvt';
 
 // 滚动条实例对象
 let _bScroll = null;
@@ -27,9 +27,9 @@ export default function scrollTo (x, y, time, easing = ease.bounce, bScroll, opt
     const _that = bScroll;
     _bScroll = bScroll;
     _opts = options;
-    const _isInTransition = time && _opts.useTransition;
-    if (!time || _isInTransition) {
-        _that.isInTransition = _isInTransition;
+
+    if (!time || _opts.useTransition) {
+        _that.isInTransition = time && _opts.useTransition;
         _setTransition(time, easing);
         _translate(x, y);
         if (time && _opts.probeType === PROBE_TYPE.REAL_MOMENTUM_TIME) {
@@ -56,15 +56,12 @@ function _startProbe () {
     function _startProbe () {
         const _pos = getScrollPos(_that.scroller, _opts.useTransform);
         _that.$emit(EVENT_TYPE.SCROLL, _pos);
-        if (!bScroll.isInTransition) {
-            _that.$emit(EVENT_TYPE.SCROLL_END, _pos);
-        } else {
-            _that.probeAnimation = requestAnimationFrame(_startProbe);
+        if (_that.isInTransition) {
+            _that.probeTimer = raf.requestAnimationFrame(_startProbe);
         }
     }
-    if (_that.isInTransition) {
-        _that.probeAnimation = requestAnimationFrame(_startProbe);
-    }
+    cancelAnimationFrame(_that.probeTimer);
+    _that.probeTimer = raf.requestAnimationFrame(_startProbe);
 }
 
 /**
@@ -107,57 +104,42 @@ function _animate (x, y, duration, easing) {
     const _that = _bScroll;
     const _startTime = getNow();
     const _endTime = _startTime + duration;
-    const _distanceX = x - _that.x;
-    const _distanceY = y - _that.y;
+    const _startX = _that.x;
+    const _startY = _that.y;
+    const _distanceX = x - _startX;
+    const _distanceY = y - _startY;
     _that.isAnimating = true;
 
     /**
      * 开始动画
-     * @param {Number} nowTime 当前的动画时间
      */
     function _startAnimate () {
         let _nowTime = getNow();
-        if (nowTime >= _endTime) {
-            _that.isAnimating = false;
+        if (_nowTime >= _endTime) {
             _translate(x, y);
             _that.$emit(EVENT_TYPE.SCROLL, {
                 x: _that.x,
                 y: _that.y
             });
-            if (!_that.isAnimating) {
-                _that.$emit(EVENT_TYPE.SCROLL_END, {
-                    x: _that.x,
-                    y: _that.y
-                });
-            }
-            dispatchEvt(_that.scroller, style.transitionEnd, {type: ANIMATE_TYPE.ANIMATION});
+            dispatchEvt(_that.scroller, style.transitionEnd, {__evtType__: ANIMATE_TYPE.ANIMATION});
             return;
         }
         _nowTime = (_nowTime - _startTime) / duration;
-        const _newX = easing(_nowTime) * _distanceX + _that.x;
-        const _newY = easing(_nowTime) * _distanceY + _that.y;
+        const _newX = easing(_nowTime) * _distanceX + _startX;
+        const _newY = easing(_nowTime) * _distanceY + _startY;
         _translate(_newX, _newY);
         if (_that.isAnimating) {
-            _that.animateAnimation = requestAnimationFrame(_startAnimate);
+            _that.animateTimer = raf.requestAnimationFrame(_startAnimate);
+        }
+
+        // 实时（并在momentum动画过程中）派发滚动事件
+        if (_opts.probeType === PROBE_TYPE.REAL_MOMENTUM_TIME) {
+            _that.$emit(EVENT_TYPE.SCROLL, {
+                x: _that.x,
+                y: _that.y
+            });
         }
     }
-    if (_that.isAnimating) {
-        _that.animateAnimation = requestAnimationFrame(_startAnimate);
-    }
-}
-
-/**
- * 模拟dom派发事件
- * @param {HTMLElement|Window} target 事件目标元素
- * @param {String} evtType 事件类型
- * @param {Object} options 可选参数
- */
-function dispatchEvt (target, evtType, options) {
-    if (target && target.tagName && evtType && typeof evtType === 'string') {
-        let _evt = document.createEvent(window && window.MouseEvent ? 'MouseEvents' : 'Event');
-        _evt.initEvent(evtType, true, true);
-        _evt = extend({}, _evt, options);
-        _evt._constructed = true;
-        target.dispatchEvent(_evt);
-    }
+    raf.cancelAnimationFrame(_that.animateTimer);
+    _that.animateTimer = raf.requestAnimationFrame(_startAnimate);
 }

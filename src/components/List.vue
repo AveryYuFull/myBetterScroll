@@ -53,6 +53,7 @@ ul {
     position: relative;
     .bs_cont {}
     .bs_cont-item {
+        user-select: none;
         padding: 5px 10px;
         background: rgba(173, 164, 164, 0.5);
         line-height: 40px;

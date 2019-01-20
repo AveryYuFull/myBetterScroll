@@ -38,7 +38,6 @@ export default function momentum (startPos, curPos, time, wrapSize, minScroll, m
             : maxScroll;
         _duration = swipeBounceTime;
     }
-    console.log(_tmpPos, _newPos);
     return {
         destination: _newPos,
         duration: _duration
