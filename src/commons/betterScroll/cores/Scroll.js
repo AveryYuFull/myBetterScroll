@@ -1,5 +1,6 @@
 import ScrollCore from './Scroll.core';
 import { DEFAULT_CONFIG } from '../constants';
+import scrollbarFactory from './scrollbar/ScrollBar';
 
 export default class Scroll extends ScrollCore {
     defaultOptions = DEFAULT_CONFIG;
@@ -48,5 +49,6 @@ export default class Scroll extends ScrollCore {
             _that._initDomObserver();
         }
         _that._initEventListener();
+        _that.scrollbar = scrollbarFactory(_that, _opts);
     }
 }

@@ -122,3 +122,11 @@ export const ANIMATE_TYPE = {
     ANIMATION: 'animation', // 通过requestAnimation开启的动画
     TRANSITION: 'transition' // 通过css3的transition开启的动画
 };
+
+/**
+ * 滚动条类型
+ */
+export const SCROLL_TYPE = {
+    HORIZONTAL: 'horizontal', // 横向滚动条
+    VERTICAL: 'vertical' // 纵向滚动条
+}
